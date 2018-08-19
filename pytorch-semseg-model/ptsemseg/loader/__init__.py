@@ -4,7 +4,8 @@ from ptsemseg.loader.pascal_voc_loader import pascalVOCLoader
 from ptsemseg.loader.camvid_loader import camvidLoader
 from ptsemseg.loader.ade20k_loader import ADE20KLoader
 from ptsemseg.loader.mit_sceneparsing_benchmark_loader import MITSceneParsingBenchmarkLoader
-from ptsemseg.loader.cell_cancer_loader import cellcancerLoader
+from ptsemseg.loader.digital_pathology_2018_loader import cellcancerLoader
+# from ptsemseg.loader.cell_cancer_loader import cellcancerLoader
 
 def get_loader(name):
     """get_loader

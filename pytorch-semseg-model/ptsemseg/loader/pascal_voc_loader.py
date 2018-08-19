@@ -8,7 +8,7 @@ import scipy.misc as m
 import scipy.io as io
 import matplotlib.pyplot as plt
 
-from tqdm import tqdm
+# from tqdm import tqdm
 from torch.utils import data
 
 def get_data_path(name):

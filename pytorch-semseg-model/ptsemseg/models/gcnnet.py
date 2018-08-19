@@ -60,7 +60,7 @@ class GCN(nn.Module):
         super(GCN, self).__init__()
         self.input_size = input_size
         resnet = models.resnet152()
-        res152_path = '/home/neuron/Desktop/Donghao/cellsegmentation/normalCV/ResNet/resnet152-b121ed2d.pth'
+        res152_path = '/home/donghao/Desktop/donghao/fast_segmentation/digital_pathology_2018/Digital Pathology_segmentation_training_set/resnet_model/resnet152-b121ed2d.pth'
         if pretrained:
             resnet.load_state_dict(torch.load(res152_path))
         self.layer0 = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu)

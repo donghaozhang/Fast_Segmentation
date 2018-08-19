@@ -9,17 +9,20 @@ from PIL import Image
 absFilePath = os.path.abspath(__file__)
 folder_name = os.path.dirname(absFilePath)
 prefix_txt = "fast_segmentation/digital_pathology_2018/Digital Pathology_segmentation_training_set/image"
-file_num = 1
-file_num_txt = str(0) + str(file_num)
 suffix_txt = "_mask.txt"
 im_suffix_txt = ".png"
-txt_comb = prefix_txt + file_num_txt + suffix_txt
-im_comb = prefix_txt + file_num_txt + im_suffix_txt
-txt_filepath = path.join(folder_name, "..", txt_comb)
-im_filepath = path.join(folder_name, "..", im_comb)
+
+for file_num in range(0, 17):
+	if file_num < 10:
+		file_num_txt = str(0) + str(file_num)
+	else:
+		file_num_txt = str(file_num)
+	txt_comb = prefix_txt + file_num_txt + suffix_txt
+	im_comb = prefix_txt + file_num_txt + im_suffix_txt
+	txt_filepath = path.join(folder_name, "..", txt_comb)
+	im_filepath = path.join(folder_name, "..", im_comb)
 
 text_file = open(txt_filepath, "r")
-
 # Divide text_file into multiple lines so that I can easily index them
 lines = text_file.readlines()
 
@@ -45,8 +48,9 @@ print('the shape of label_im is ', label_im.shape)
 label_im_transpose = np.transpose(label_im, (1, 0))
 print('the shape of label_im_transpose is ', label_im_transpose.shape)
 print('the final loc_num is ', loc_num)
-fig1 = plt.figure()
-plt.imshow(label_im_transpose)
-fig2 = plt.figure()
-plt.imshow(im)
-plt.show()
+
+# fig1 = plt.figure()
+# plt.imshow(label_im_transpose)
+# fig2 = plt.figure()
+# plt.imshow(im)
+# plt.show()
