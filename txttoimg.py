@@ -1,9 +1,10 @@
 from os import path
 import os
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
+import matplotlib
 from PIL import Image
-# import cv2
+import cv2
 
 # Load the txt file storing the mask information
 absFilePath = os.path.abspath(__file__)
@@ -12,7 +13,7 @@ prefix_txt = "fast_segmentation/digital_pathology_2018/Digital Pathology_segment
 suffix_txt = "_mask.txt"
 im_suffix_txt = ".png"
 
-for file_num in range(0, 17):
+for file_num in range(0, 16):
 	if file_num < 10:
 		file_num_txt = str(0) + str(file_num)
 	else:
@@ -38,7 +39,8 @@ print('width_num and height_num are : ', width_num, height_num)
 
 label_im = np.zeros((width_num, height_num))
 im = Image.open(im_filepath)
-
+im_np = np.asarray(im)
+# print(im)
 for x in range(0, width_num):
 	for y in range(0, height_num):
 		loc_num = x + y * width_num + 1
@@ -49,6 +51,17 @@ label_im_transpose = np.transpose(label_im, (1, 0))
 print('the shape of label_im_transpose is ', label_im_transpose.shape)
 print('the final loc_num is ', loc_num)
 
+# label_path_prefix = '../fast_segmentation/digital_pathology_2018/Digital Pathology_segmentation_training_set/'
+# label_path_suffix = 'trainannot'
+label_save_path = '/home/donghao/Desktop/donghao/fast_segmentation/digital_pathology_2018/Digital Pathology_segmentation_training_set/trainannot/'
+im_save_path = '/home/donghao/Desktop/donghao/fast_segmentation/digital_pathology_2018/Digital Pathology_segmentation_training_set/train/'
+print(im_comb)
+label_save_path = label_save_path + file_num_txt + '.png'
+im_save_path = im_save_path + file_num_txt + '.png'
+cv2.imwrite(label_save_path, label_im)
+cv2.imwrite(im_save_path, im_np)
+
+# pil_im.save("./testxx.png")
 # fig1 = plt.figure()
 # plt.imshow(label_im_transpose)
 # fig2 = plt.figure()
