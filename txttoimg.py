@@ -32,9 +32,9 @@ for file_num in range(1, 16):
 	txt_im_dim_split = txt_im_dim.split()
 	width_num = int(txt_im_dim_split[0])
 	height_num = int(txt_im_dim_split[1])
-	print('the image dimension of the current file is :', txt_im_dim_split[0])
-	print('the length of lines', len(lines))
-	print('width_num and height_num are : ', width_num, height_num)
+	# print('the image dimension of the current file is :', txt_im_dim_split[0])
+	# print('the length of lines', len(lines))
+	# print('width_num and height_num are : ', width_num, height_num)
 
 	label_im = np.zeros((width_num, height_num))
 	im = Image.open(im_filepath)
@@ -44,10 +44,10 @@ for file_num in range(1, 16):
 			loc_num = x + y * width_num + 1
 			label_im[x, y] = int(lines[loc_num])
 
-	print('the shape of label_im is ', label_im.shape)
+	# print('the shape of label_im is ', label_im.shape)
 	label_im_transpose = np.transpose(label_im, (1, 0))
-	print('the shape of label_im_transpose is ', label_im_transpose.shape)
-	print('the final loc_num is ', loc_num)
+	# print('the shape of label_im_transpose is ', label_im_transpose.shape)
+	# print('the final loc_num is ', loc_num)
 	label_save_path = '/home/donghao/Desktop/donghao/fast_segmentation/digital_pathology_2018/Digital Pathology_segmentation_training_set/trainannot/'
 	im_save_path = '/home/donghao/Desktop/donghao/fast_segmentation/digital_pathology_2018/Digital Pathology_segmentation_training_set/train/'
 	label_save_path = label_save_path + file_num_txt + '.png'

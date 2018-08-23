@@ -5,6 +5,7 @@ import torchvision
 import numpy as np
 import scipy.misc as m
 import matplotlib.pyplot as plt
+import cv2
 
 from torch.utils import data
 
@@ -31,11 +32,14 @@ class cellcancerLoader(data.Dataset):
         img_name = self.files[self.split][index]
         img_path = self.root + '/' + self.split + '/' + img_name
         lbl_path = self.root + '/' + self.split + 'annot/' + img_name
-        # print(img_path)
+        print(img_path)
         # print('index value ', index)
-        if img_path == '/home/neuron/Desktop/Donghao/cellsegmentation/main_data_folder/cross_val_v2/val1/comp_exp/train/555.png':
-            print('bingo')
-        img = m.imread(img_path)
+        # if img_path == '/home/neuron/Desktop/Donghao/cellsegmentation/main_data_folder/cross_val_v2/val1/comp_exp/train/555.png':
+        #     print('bingo')
+        img = cv2.imread(img_path)
+        img = np.asarray(img)
+        # img = img.astype(float)
+        # img = m.imread(img_path)
         img = np.array(img, dtype=np.uint8)
         # print(img.shape)
         lbl = m.imread(lbl_path)
@@ -50,9 +54,11 @@ class cellcancerLoader(data.Dataset):
 
     def transform(self, img, lbl):
         img = img[:, :, ::-1]
+        print('image shape is ', img.shape)
         img = img.astype(np.float64)
         img -= self.mean
         img = m.imresize(img, (self.img_size[0], self.img_size[1]))
+        print('the current size of the image is ', self.img_size[0], self.img_size[1])
         img = img.astype(float) / 255.0
         # NHWC -> NCHW
         img = img.transpose(2, 0, 1)
@@ -61,7 +67,7 @@ class cellcancerLoader(data.Dataset):
 
         lbl = self.encode_segmap(lbl)
         lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), 'nearest', mode='F')
-        # print(lbl.shape)
+        print('the shape of lbl is ', lbl.shape)
         lbl = torch.from_numpy(lbl).long()
         return img, lbl
 

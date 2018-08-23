@@ -1,6 +1,6 @@
 import sys
 import torch
-import visdom
+# import visdom
 import argparse
 import numpy as np
 import torch.nn as nn
@@ -28,14 +28,14 @@ def train(args):
     trainloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4, shuffle=True)
 
     # Setup visdom for visualization
-    vis = visdom.Visdom()
-
-    loss_window = vis.line(X=torch.zeros((1,)).cpu(),
-                           Y=torch.zeros((1)).cpu(),
-                           opts=dict(xlabel='epoch',
-                                     ylabel='Loss',
-                                     title='Training Loss',
-                                     legend=['Loss']))
+    # vis = visdom.Visdom()
+	#
+    # loss_window = vis.line(X=torch.zeros((1,)).cpu(),
+    #                        Y=torch.zeros((1)).cpu(),
+    #                        opts=dict(xlabel='epoch',
+    #                                  ylabel='Loss',
+    #                                  title='Training Loss',
+    #                                  legend=['Loss']))
 
     # Setup Model
     model = get_model(args.arch, n_classes)
