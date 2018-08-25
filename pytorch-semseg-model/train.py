@@ -10,6 +10,8 @@ import torchvision.models as models
 from torch.autograd import Variable
 from torch.utils import data
 
+
+# get_model is defined in the __init__.py file
 from ptsemseg.models import get_model
 from ptsemseg.loader import get_loader, get_data_path
 from ptsemseg.loss import cross_entropy2d
@@ -29,7 +31,7 @@ def train(args):
 
     # Setup visdom for visualization
     # vis = visdom.Visdom()
-	#
+
     # loss_window = vis.line(X=torch.zeros((1,)).cpu(),
     #                        Y=torch.zeros((1)).cpu(),
     #                        opts=dict(xlabel='epoch',
@@ -86,19 +88,19 @@ def train(args):
             loss_sum = loss_sum + torch.Tensor([loss.data[0]]).unsqueeze(0).cpu()
         avg_loss = loss_sum / img_counter
         avg_loss_array = np.array(avg_loss)
-        vis.line(
-            X=torch.ones((1, 1)).cpu() * epoch,
-            Y=avg_loss,
-            win=loss_window,
-            update='append')
+        # vis.line(
+        #     X=torch.ones((1, 1)).cpu() * epoch,
+        #     Y=avg_loss,
+        #     win=loss_window,
+        #     update='append')
         # writer.add_scalar('train_main_loss', avg_loss, epoch)
         test_output = model(test_image)
         predicted = loader.decode_segmap(test_output[0].cpu().data.numpy().argmax(0))
         target = loader.decode_segmap(test_segmap.numpy())
-        if epoch == 1:
-            vis.image(test_image[0].cpu().data.numpy(), opts=dict(title='Test Epoch' + str(epoch)))
-            vis.image(np.transpose(target, [2,0,1]), opts=dict(title='GT Epoch' + str(epoch)))
-        vis.image(np.transpose(predicted, [2,0,1]), opts=dict(title='Predicted Epoch' + str(epoch)))
+        # if epoch == 1:
+        #     vis.image(test_image[0].cpu().data.numpy(), opts=dict(title='Test Epoch' + str(epoch)))
+        #     vis.image(np.transpose(target, [2,0,1]), opts=dict(title='GT Epoch' + str(epoch)))
+        # vis.image(np.transpose(predicted, [2,0,1]), opts=dict(title='Predicted Epoch' + str(epoch)))
 
         torch.save(model, "{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
 

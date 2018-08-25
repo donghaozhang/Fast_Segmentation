@@ -20,6 +20,8 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
     # logpt = log_p.gather(1, target_test)
     # print('loss sum logpt', logpt.sum())
     # print('loss original', loss)
-    if size_average:
-        loss /= mask.data.sum()
+
+
+    # if size_average:
+    #     loss /= mask.data.sum()
     return loss

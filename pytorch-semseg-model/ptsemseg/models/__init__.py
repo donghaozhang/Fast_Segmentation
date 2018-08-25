@@ -46,6 +46,11 @@ def get_model(name, n_classes):
                       input_size = 256,
                       pretrained = True)
 
+    elif name == 'bisenet':
+        model = model(num_classes = n_classes,
+                      input_size = 256,
+                      pretrained = True)
+
     else:
         raise 'Model {} not available'.format(name)
 
@@ -61,4 +66,5 @@ def _get_model_instance(name):
         'pspnet': pspnet,
         'linknet': linknet,
         'gcnnet': GCN,
+        'bisenet': BiSeNet,
     }[name]

@@ -54,11 +54,11 @@ class cellcancerLoader(data.Dataset):
 
     def transform(self, img, lbl):
         img = img[:, :, ::-1]
-        print('image shape is ', img.shape)
+        # print('image shape is ', img.shape)
         img = img.astype(np.float64)
         img -= self.mean
         img = m.imresize(img, (self.img_size[0], self.img_size[1]))
-        print('the current size of the image is ', self.img_size[0], self.img_size[1])
+        # print('the current size of the image is ', self.img_size[0], self.img_size[1])
         img = img.astype(float) / 255.0
         # NHWC -> NCHW
         img = img.transpose(2, 0, 1)
@@ -67,12 +67,12 @@ class cellcancerLoader(data.Dataset):
 
         lbl = self.encode_segmap(lbl)
         lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), 'nearest', mode='F')
-        print('the shape of lbl is ', lbl.shape)
+        # print('the shape of lbl after resize is ', lbl.shape)
         lbl = torch.from_numpy(lbl).long()
         return img, lbl
 
-    # def get_camvid_labels(self):
-    #     return np.asarray([[128, 128, 128], [128, 0, 0], [192, 192, 128], [255, 69, 0], [128, 64, 128], [60, 40, 222], [128, 128, 0], [192, 128, 128], [64, 64, 128], [64, 0, 128], [64, 64, 0], [0, 128, 192], [0, 0, 0]])
+    def get_camvid_labels(self):
+        return np.asarray([[128, 128, 128], [128, 0, 0], [192, 192, 128], [255, 69, 0], [128, 64, 128], [60, 40, 222], [128, 128, 0], [192, 128, 128], [64, 64, 128], [64, 0, 128], [64, 64, 0], [0, 128, 192], [0, 0, 0]])
 
     def get_cellcancer_labels(self):
         return np.asarray([[200, 0, 0], [0, 0, 0]])
