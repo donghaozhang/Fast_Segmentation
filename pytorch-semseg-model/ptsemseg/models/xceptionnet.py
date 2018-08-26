@@ -166,14 +166,18 @@ class Xception(nn.Module):
 		x = self.conv1(input)
 		x = self.bn1(x)
 		x = self.relu(x)
+		print('x after conv1: ', x)
 
 		x = self.conv2(x)
 		x = self.bn2(x)
 		x = self.relu(x)
+		print('x after conv2: ', x)
 
 		x = self.block1(x)
 		x = self.block2(x)
 		x = self.block3(x)
+
+		print('x after conv2: ', x)
 		x = self.block4(x)
 		x = self.block5(x)
 		x = self.block6(x)
@@ -207,6 +211,7 @@ class Xception(nn.Module):
 
 
 def xception(num_classes=1000, pretrained='imagenet'):
+	import torch
 	model = Xception(num_classes=num_classes)
 	if pretrained:
 		settings = pretrained_settings['xception'][pretrained]
@@ -214,8 +219,9 @@ def xception(num_classes=1000, pretrained='imagenet'):
 			"num_classes should be {}, but is {}".format(settings['num_classes'], num_classes)
 
 		model = Xception(num_classes=num_classes)
-		model.load_state_dict(model_zoo.load_url(settings['url']))
-
+		# model.load_state_dict(model_zoo.load_url(settings['url']))
+		model.load_state_dict(torch.load('/home/donghao/.torch/models/xception-squeezzed.pth'))
+		print('the model has been loaded successfully')
 		model.input_space = settings['input_space']
 		model.input_size = settings['input_size']
 		model.input_range = settings['input_range']
