@@ -104,6 +104,18 @@ class Block(nn.Module):
 		x += skip
 		return x
 
+class SeparableConv2d(nn.Module):
+	def __init__(self, in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1, bias=False):
+		super(SeparableConv2d, self).__init__()
+
+		self.conv1 = nn.Conv2d(in_channels, in_channels, kernel_size, stride, padding, dilation, groups=in_channels,
+							   bias=bias)
+		self.pointwise = nn.Conv2d(in_channels, out_channels, 1, 1, 0, 1, 1, bias=bias)
+
+	def forward(self, x):
+		x = self.conv1(x)
+		x = self.pointwise(x)
+		return x
 
 class Xception(nn.Module):
 	"""
@@ -118,6 +130,27 @@ class Xception(nn.Module):
 		"""
 		super(Xception, self).__init__()
 		self.num_classes = num_classes
+
+		self.conv1_xception39 = nn.Conv2d(in_channels=3, out_channels=8, kernel_size=3, stride=2, padding=0, bias=False)
+		self.maxpool_xception39 = nn.MaxPool2d(kernel_size=3, stride=2)
+
+		# P3
+		self.block1_xception39 = Block(in_filters=8, out_filters=16, reps=1, strides=2, start_with_relu=True, grow_first=True)
+		self.block2_xception39 = Block(in_filters=16, out_filters=16, reps=3, strides=1, start_with_relu=True, grow_first=True)
+
+		# P4
+		self.block3_xception39 = Block(in_filters=16, out_filters=32, reps=1, strides=2, start_with_relu=True, grow_first=True)
+		self.block4_xception39 = Block(in_filters=32, out_filters=32, reps=7, strides=1, start_with_relu=True, grow_first=True)
+
+		# P5
+		self.block5_xception39 = Block(in_filters=32, out_filters=64, reps=1, strides=2, start_with_relu=True, grow_first=True)
+		self.block6_xception39 = Block(in_filters=64, out_filters=64, reps=3, strides=1, start_with_relu=True, grow_first=True)
+
+		x = self.relu(features)
+
+		x = F.adaptive_avg_pool2d(x, (1, 1))
+		x = x.view(x.size(0), -1)
+
 
 		self.conv1 = nn.Conv2d(3, 32, 3, 2, 0, bias=False)
 		self.bn1 = nn.BatchNorm2d(32)
@@ -163,6 +196,25 @@ class Xception(nn.Module):
 	# #-----------------------------
 
 	def features(self, input):
+
+		y = self.conv1_xception39(input)
+		print('the size of xception39 after conv1', y.size())
+		y = self.maxpool_xception39(y)
+		print('the size of xception39 after maxpool', y.size())
+
+		y = self.block1_xception39(y)
+		print('the size of xception39 after block1', y.size())
+		y = self.block2_xception39(y)
+		print('the size of xception39 after block2', y.size())
+		y = self.block3_xception39(y)
+		print('the size of xception39 after block3', y.size())
+		y = self.block4_xception39(y)
+		print('the size of xception39 after block4', y.size())
+		y = self.block5_xception39(y)
+		print('the size of xception39 after block5', y.size())
+		y = self.block6_xception39(y)
+		print('the size of xception39 after block6', y.size())
+
 		x = self.conv1(input)
 		x = self.bn1(x)
 		x = self.relu(x)
@@ -214,7 +266,7 @@ class Xception(nn.Module):
 		return x
 
 
-def xception(num_classes=1000, pretrained='imagenet'):
+def xception39(num_classes=1000, pretrained='imagenet'):
 	import torch
 	model = Xception(num_classes=num_classes)
 	if pretrained:
