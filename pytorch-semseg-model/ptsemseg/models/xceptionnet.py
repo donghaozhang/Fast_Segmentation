@@ -166,10 +166,12 @@ class Xception(nn.Module):
 		x = self.conv1(input)
 		x = self.bn1(x)
 		x = self.relu(x)
+		print('x after conv1: ', x.size())
 
 		x = self.conv2(x)
 		x = self.bn2(x)
 		x = self.relu(x)
+		print('x after conv2: ', x.size())
 
 		x = self.block1(x)
 		x = self.block2(x)
