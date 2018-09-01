@@ -103,19 +103,6 @@ class Block(nn.Module):
 		x += skip
 		return x
 
-# class GlobalAveragePooling(nn.Module):
-# 	# aap is adaptive_avg_pool2d
-# 	def __init__(self, input_aap, outputsize_aap, num_classes):
-# 		super(GlobalAveragePooling, self).__init__()
-# 		self.aap = F.adaptive_avg_pool2d(input=input_aap, output_size=outputsize_aap)
-# 		self.fc_aap = nn.Linear(in_features=2048, out_features=num_classes)
-#
-# 	def forward(self, x):
-# 		x = self.relu(x)
-# 		x = self.aap(x)
-# 		x = x.view(x.size(0), -1)
-# 		x = self.fc_aap(x)
-# 		return x
 
 class Xception(nn.Module):
 	"""
@@ -231,7 +218,6 @@ class Xception(nn.Module):
 		x = self.block1(x)
 		x = self.block2(x)
 		x = self.block3(x)
-		print('x after block 3: ', x.size())
 
 		x = self.block4(x)
 		x = self.block5(x)
@@ -242,7 +228,6 @@ class Xception(nn.Module):
 		x = self.block9(x)
 		x = self.block10(x)
 		x = self.block11(x)
-		print('x after block 11: ', x.size())
 		x = self.block12(x)
 
 		x = self.conv3(x)
@@ -251,26 +236,19 @@ class Xception(nn.Module):
 
 		x = self.conv4(x)
 		x = self.bn4(x)
-		print('x after conv4: ', x.size())
 		return x
 
 	def logits(self, features):
 
 		x = self.relu(features)
-		print('in logits function，the size of xception after relu', x.size())
 		x = F.adaptive_avg_pool2d(x, (1, 1))
-		print('in logits function，the size of xception after adaptive_avg_pool2d', x.size())
 		x = x.view(x.size(0), -1)
-		print('in logits function，the size of xception after view', x.size())
 		x = self.last_linear(x)
-		print('in logits function，the size of xception after last_linear', x.size())
 		return x
 
 	def forward(self, input):
 		x = self.features(input)
-		print('the size of xception after features is ', x.size())
 		x = self.logits(x)
-		print('the size of xception after logits is ', x.size())
 		return x
 
 
@@ -281,11 +259,8 @@ def xception39(num_classes=1000, pretrained='imagenet'):
 		settings = pretrained_settings['xception'][pretrained]
 		assert num_classes == settings['num_classes'], \
 			"num_classes should be {}, but is {}".format(settings['num_classes'], num_classes)
-
 		model = Xception(num_classes=num_classes)
-		# model.load_state_dict(model_zoo.load_url(settings['url']))
 		model.load_state_dict(torch.load('/home/donghao/.torch/models/xception-squeezzed.pth'))
-		print('the model has been loaded successfully')
 		model.input_space = settings['input_space']
 		model.input_size = settings['input_size']
 		model.input_range = settings['input_range']

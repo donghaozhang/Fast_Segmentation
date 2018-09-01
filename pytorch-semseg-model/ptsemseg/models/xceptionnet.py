@@ -174,6 +174,7 @@ class Xception(nn.Module):
 		x = self.block1(x)
 		x = self.block2(x)
 		x = self.block3(x)
+		print('x after block 3: ', x.size())
 
 		x = self.block4(x)
 		x = self.block5(x)
@@ -184,6 +185,7 @@ class Xception(nn.Module):
 		x = self.block9(x)
 		x = self.block10(x)
 		x = self.block11(x)
+		print('x after block 11: ', x.size())
 		x = self.block12(x)
 
 		x = self.conv3(x)
@@ -192,19 +194,26 @@ class Xception(nn.Module):
 
 		x = self.conv4(x)
 		x = self.bn4(x)
+		print('x after conv4: ', x.size())
+
 		return x
 
 	def logits(self, features):
 		x = self.relu(features)
-
+		print('in logits function，the size of xception after relu', x.size())
 		x = F.adaptive_avg_pool2d(x, (1, 1))
+		print('in logits function，the size of xception after adaptive_avg_pool2d', x.size())
 		x = x.view(x.size(0), -1)
+		print('in logits function，the size of xception after view', x.size())
 		x = self.last_linear(x)
+		print('in logits function，the size of xception after last_linear', x.size())
 		return x
 
 	def forward(self, input):
 		x = self.features(input)
+		print('the size of xception after features is ', x.size())
 		x = self.logits(x)
+		print('the size of xception after logits is ', x.size())
 		return x
 
 
