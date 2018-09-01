@@ -166,17 +166,14 @@ class Xception(nn.Module):
 		x = self.conv1(input)
 		x = self.bn1(x)
 		x = self.relu(x)
-		print('x after conv1: ', x.size())
 
 		x = self.conv2(x)
 		x = self.bn2(x)
 		x = self.relu(x)
-		print('x after conv2: ', x.size())
 
 		x = self.block1(x)
 		x = self.block2(x)
 		x = self.block3(x)
-		print('x after block 3: ', x.size())
 
 		x = self.block4(x)
 		x = self.block5(x)
@@ -187,8 +184,6 @@ class Xception(nn.Module):
 		x = self.block9(x)
 		x = self.block10(x)
 		x = self.block11(x)
-		print('x after block 11: ', x.size())
-
 		x = self.block12(x)
 
 		x = self.conv3(x)
@@ -197,7 +192,6 @@ class Xception(nn.Module):
 
 		x = self.conv4(x)
 		x = self.bn4(x)
-		print('x after conv4: ', x.size())
 		return x
 
 	def logits(self, features):

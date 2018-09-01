@@ -43,8 +43,7 @@ class SeparableConv2d(nn.Module):
 	def __init__(self, in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1, bias=False):
 		super(SeparableConv2d, self).__init__()
 
-		self.conv1 = nn.Conv2d(in_channels, in_channels, kernel_size, stride, padding, dilation, groups=in_channels,
-							   bias=bias)
+		self.conv1 = nn.Conv2d(in_channels, in_channels, kernel_size, stride, padding, dilation, groups=in_channels, bias=bias)
 		self.pointwise = nn.Conv2d(in_channels, out_channels, 1, 1, 0, 1, 1, bias=bias)
 
 	def forward(self, x):
@@ -104,18 +103,19 @@ class Block(nn.Module):
 		x += skip
 		return x
 
-class SeparableConv2d(nn.Module):
-	def __init__(self, in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1, bias=False):
-		super(SeparableConv2d, self).__init__()
-
-		self.conv1 = nn.Conv2d(in_channels, in_channels, kernel_size, stride, padding, dilation, groups=in_channels,
-							   bias=bias)
-		self.pointwise = nn.Conv2d(in_channels, out_channels, 1, 1, 0, 1, 1, bias=bias)
-
-	def forward(self, x):
-		x = self.conv1(x)
-		x = self.pointwise(x)
-		return x
+# class GlobalAveragePooling(nn.Module):
+# 	# aap is adaptive_avg_pool2d
+# 	def __init__(self, input_aap, outputsize_aap, num_classes):
+# 		super(GlobalAveragePooling, self).__init__()
+# 		self.aap = F.adaptive_avg_pool2d(input=input_aap, output_size=outputsize_aap)
+# 		self.fc_aap = nn.Linear(in_features=2048, out_features=num_classes)
+#
+# 	def forward(self, x):
+# 		x = self.relu(x)
+# 		x = self.aap(x)
+# 		x = x.view(x.size(0), -1)
+# 		x = self.fc_aap(x)
+# 		return x
 
 class Xception(nn.Module):
 	"""
@@ -146,10 +146,7 @@ class Xception(nn.Module):
 		self.block5_xception39 = Block(in_filters=32, out_filters=64, reps=1, strides=2, start_with_relu=True, grow_first=True)
 		self.block6_xception39 = Block(in_filters=64, out_filters=64, reps=3, strides=1, start_with_relu=True, grow_first=True)
 
-		x = self.relu(features)
-
-		x = F.adaptive_avg_pool2d(x, (1, 1))
-		x = x.view(x.size(0), -1)
+		self.fc_xception39 = nn.Linear(2048, num_classes)
 
 
 		self.conv1 = nn.Conv2d(3, 32, 3, 2, 0, bias=False)
@@ -214,6 +211,12 @@ class Xception(nn.Module):
 		print('the size of xception39 after block5', y.size())
 		y = self.block6_xception39(y)
 		print('the size of xception39 after block6', y.size())
+		# y = self.avg(y)
+		# print('the size of xception39 after ', y.size())
+		y = F.adaptive_avg_pool2d(y, (1, 1))
+		y = y.view(y.size(0), -1)
+		print('the size of xception39 is ', y.size())
+		# y = self.fc_xception39(2048, 1000)
 
 		x = self.conv1(input)
 		x = self.bn1(x)
@@ -240,7 +243,6 @@ class Xception(nn.Module):
 		x = self.block10(x)
 		x = self.block11(x)
 		print('x after block 11: ', x.size())
-
 		x = self.block12(x)
 
 		x = self.conv3(x)
@@ -253,16 +255,22 @@ class Xception(nn.Module):
 		return x
 
 	def logits(self, features):
-		x = self.relu(features)
 
+		x = self.relu(features)
+		print('in logits function，the size of xception after relu', x.size())
 		x = F.adaptive_avg_pool2d(x, (1, 1))
+		print('in logits function，the size of xception after adaptive_avg_pool2d', x.size())
 		x = x.view(x.size(0), -1)
+		print('in logits function，the size of xception after view', x.size())
 		x = self.last_linear(x)
+		print('in logits function，the size of xception after last_linear', x.size())
 		return x
 
 	def forward(self, input):
 		x = self.features(input)
+		print('the size of xception after features is ', x.size())
 		x = self.logits(x)
+		print('the size of xception after logits is ', x.size())
 		return x
 
 
