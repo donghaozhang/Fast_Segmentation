@@ -17,7 +17,7 @@ tensor_fake_image = torch.FloatTensor(numpy_fake_image)
 torch_fake_image = Variable(tensor_fake_image).cuda()
 # output = xception_model(torch_fake_image)
 output = bisenet_model(torch_fake_image)
-print(output.size())
+# print('the output size is : ', output.size())
 
 from scipy.stats import norm
 # a = [26/8, 32/8, 34/6, 28/6]

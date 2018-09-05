@@ -216,6 +216,7 @@ class Bisenet(nn.Module):
 		super(Bisenet, self).__init__()
 		self.num_classes = num_classes
 
+		# Context Path
 		self.conv1_xception39 = nn.Conv2d(in_channels=3, out_channels=8, kernel_size=3, stride=2, padding=0, bias=False)
 		self.maxpool_xception39 = nn.MaxPool2d(kernel_size=3, stride=2)
 
@@ -233,6 +234,10 @@ class Bisenet(nn.Module):
 
 		self.fc_xception39 = nn.Linear(in_features=64, out_features=self.num_classes)
 
+		# Spatial Path
+		self.block1_spatial_path = SpatialPathModule(conv_in_channels=3, conv_out_channels=64)
+		self.block2_spatial_path = SpatialPathModule(conv_in_channels=64, conv_out_channels=64)
+		self.block3_spatial_path = SpatialPathModule(conv_in_channels=64, conv_out_channels=64)
 	# #------- init weights --------
 	# for m in self.modules():
 	#     if isinstance(m, nn.Conv2d):
@@ -244,26 +249,33 @@ class Bisenet(nn.Module):
 	# #-----------------------------
 
 	def forward(self, input):
-		y = self.conv1_xception39(input)
-		print('the size of xception39 after conv1', y.size())
-		y = self.maxpool_xception39(y)
-		print('the size of xception39 after maxpool', y.size())
+		print('the size of input image is ', input.size())
 
+		# Context Path
+		y = self.conv1_xception39(input)
+		# print('the size of xception39 after conv1', y.size())
+		y = self.maxpool_xception39(y)
+		print(' level 1: 1 / 4 the size of xception39 after maxpool', y.size())
 		y = self.block1_xception39(y)
-		print('the size of xception39 after block1', y.size())
+		# print('the size of xception39 after block1', y.size())
 		y = self.block2_xception39(y)
-		print('the size of xception39 after block2', y.size())
+		print(' level 2: 1 / 8 the size of xception39 after block2', y.size())
 		y = self.block3_xception39(y)
-		print('the size of xception39 after block3', y.size())
+		# print(' level 3: 1 / 16 the size of xception39 after block3', y.size())
 		y = self.block4_xception39(y)
-		print('the size of xception39 after block4', y.size())
+		print(' level 3: 1 / 16 the size of xception39 after block4', y.size())
 		y = self.block5_xception39(y)
-		print('the size of xception39 after block5', y.size())
+		# print('the size of xception39 after block5', y.size())
 		y = self.block6_xception39(y)
-		print('the size of xception39 after block6', y.size())
+		print(' level 4: 1 / 32 the size of xception39 after block6', y.size())
+
+		# Spatial Path
+		sp = self.block1_spatial_path(input)
+		sp = self.block2_spatial_path(sp)
+
 		y = F.adaptive_avg_pool2d(y, (1, 1))
 		y = y.view(y.size(0), -1)
-		print('the size of xception39 is ', y.size()[1])
+		# print('the size of xception39 is ', y.size()[1])
 		y = self.fc_xception39(y)
 		return y
 
