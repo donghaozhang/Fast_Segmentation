@@ -116,6 +116,13 @@ class SpatialPathModule(nn.Module):
 		out = self.relu(x)
 		return out
 
+class AttentionRefinementModule(nn.Module):
+	def __init__(self, conv_in_channels, conv_out_channels):
+		super(AttentionRefinementModule, self).__init__()
+		self.conv = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=1, padding=1)
+		self.bn = nn.BatchNorm2d(num_features=conv_out_channels)
+		self.sigmod = nn.Sigmoid()
+
 class Xception(nn.Module):
 	"""
 	Xception optimized for the ImageNet dataset, as specified in
@@ -271,7 +278,11 @@ class Bisenet(nn.Module):
 
 		# Spatial Path
 		sp = self.block1_spatial_path(input)
+		print(' level 1 of spatial path, the size of sp is ', sp.size())
 		sp = self.block2_spatial_path(sp)
+		print(' level 2 of spatial path, the size of sp is ', sp.size())
+		sp = self.block3_spatial_path(sp)
+		print(' level 3 of spatial path, the size of sp is ', sp.size())
 
 		y = F.adaptive_avg_pool2d(y, (1, 1))
 		y = y.view(y.size(0), -1)
@@ -287,7 +298,7 @@ def bisenet(num_classes=1000, pretrained='imagenet'):
 		settings = pretrained_settings['xception'][pretrained]
 		assert num_classes == settings['num_classes'], \
 			"num_classes should be {}, but is {}".format(settings['num_classes'], num_classes)
-		model = Xception(num_classes=num_classes)
+		model = Bisenet(num_classes=num_classes)
 		model.load_state_dict(torch.load('/home/donghao/.torch/models/xception-squeezzed.pth'))
 		model.input_space = settings['input_space']
 		model.input_size = settings['input_size']
