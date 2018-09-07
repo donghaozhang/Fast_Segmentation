@@ -117,11 +117,24 @@ class SpatialPathModule(nn.Module):
 		return out
 
 class AttentionRefinementModule(nn.Module):
-	def __init__(self, conv_in_channels, conv_out_channels):
+	def __init__(self, conv_in_channels, conv_out_channels, pool_size):
 		super(AttentionRefinementModule, self).__init__()
-		self.conv = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=1, padding=1)
+		self.conv = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=1, stride=1, padding=0)
 		self.bn = nn.BatchNorm2d(num_features=conv_out_channels)
 		self.sigmod = nn.Sigmoid()
+		self.pool_size = pool_size
+
+	def forward(self, x):
+		input = x
+		print('the input size of ARM is ', x.size())
+		x = F.adaptive_avg_pool2d(x, (self.pool_size, self.pool_size))
+		print('the input size of ARM after adaptive average pooling is ', x.size())
+		x = self.conv(x)
+		x = self.bn(x)
+		x = self.sigmod(x)
+		print('debug purpose ', 'the size of input ', input.size(), 'the size of x is ', x.size())
+		x = torch.mul(input, x)
+		return x
 
 class Xception(nn.Module):
 	"""
@@ -241,6 +254,10 @@ class Bisenet(nn.Module):
 
 		self.fc_xception39 = nn.Linear(in_features=64, out_features=self.num_classes)
 
+		self.arm1_context_path = AttentionRefinementModule(conv_in_channels=32, conv_out_channels=32, pool_size=14)
+		self.arm2_context_path = AttentionRefinementModule(conv_in_channels=64, conv_out_channels=64, pool_size=7)
+		# self.block3_spatial_path = AttentionRefinementModule(conv_in_channels=64, conv_out_channels=64)
+
 		# Spatial Path
 		self.block1_spatial_path = SpatialPathModule(conv_in_channels=3, conv_out_channels=64)
 		self.block2_spatial_path = SpatialPathModule(conv_in_channels=64, conv_out_channels=64)
@@ -263,18 +280,24 @@ class Bisenet(nn.Module):
 		# print('the size of xception39 after conv1', y.size())
 		y = self.maxpool_xception39(y)
 		print(' level 1: 1 / 4 the size of xception39 after maxpool', y.size())
+
 		y = self.block1_xception39(y)
 		# print('the size of xception39 after block1', y.size())
 		y = self.block2_xception39(y)
 		print(' level 2: 1 / 8 the size of xception39 after block2', y.size())
+
 		y = self.block3_xception39(y)
 		# print(' level 3: 1 / 16 the size of xception39 after block3', y.size())
 		y = self.block4_xception39(y)
 		print(' level 3: 1 / 16 the size of xception39 after block4', y.size())
+		y_arm = self.arm1_context_path(y)
+		print(' the size of image feature after first y_arm', y_arm.size())
+
 		y = self.block5_xception39(y)
 		# print('the size of xception39 after block5', y.size())
 		y = self.block6_xception39(y)
 		print(' level 4: 1 / 32 the size of xception39 after block6', y.size())
+		y_arm2 = self.arm2_context_path(y)
 
 		# Spatial Path
 		sp = self.block1_spatial_path(input)
