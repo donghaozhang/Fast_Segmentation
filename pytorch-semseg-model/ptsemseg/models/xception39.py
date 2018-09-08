@@ -106,7 +106,7 @@ class Block(nn.Module):
 class SpatialPathModule(nn.Module):
 	def __init__(self, conv_in_channels, conv_out_channels):
 		super(SpatialPathModule, self).__init__()
-		self.conv1 = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=3, padding=1)
+		self.conv1 = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, stride=2, kernel_size=3, padding=1)
 		self.bn = nn.BatchNorm2d(num_features=conv_out_channels)
 		self.relu = nn.ReLU(inplace=False)
 
@@ -126,13 +126,13 @@ class AttentionRefinementModule(nn.Module):
 
 	def forward(self, x):
 		input = x
-		print('the input size of ARM is ', x.size())
+		# print('the input size of ARM is ', x.size())
 		x = F.adaptive_avg_pool2d(x, (self.pool_size, self.pool_size))
-		print('the input size of ARM after adaptive average pooling is ', x.size())
+		# print('the input size of ARM after adaptive average pooling is ', x.size())
 		x = self.conv(x)
 		x = self.bn(x)
 		x = self.sigmod(x)
-		print('debug purpose ', 'the size of input ', input.size(), 'the size of x is ', x.size())
+		# print('debug purpose ', 'the size of input ', input.size(), 'the size of x is ', x.size())
 		x = torch.mul(input, x)
 		return x
 
@@ -254,8 +254,8 @@ class Bisenet(nn.Module):
 
 		self.fc_xception39 = nn.Linear(in_features=64, out_features=self.num_classes)
 
-		self.arm1_context_path = AttentionRefinementModule(conv_in_channels=32, conv_out_channels=32, pool_size=14)
-		self.arm2_context_path = AttentionRefinementModule(conv_in_channels=64, conv_out_channels=64, pool_size=7)
+		self.arm1_context_path = AttentionRefinementModule(conv_in_channels=32, conv_out_channels=32, pool_size=28)
+		self.arm2_context_path = AttentionRefinementModule(conv_in_channels=64, conv_out_channels=64, pool_size=28)
 		# self.block3_spatial_path = AttentionRefinementModule(conv_in_channels=64, conv_out_channels=64)
 
 		# Spatial Path
@@ -290,15 +290,24 @@ class Bisenet(nn.Module):
 		# print(' level 3: 1 / 16 the size of xception39 after block3', y.size())
 		y = self.block4_xception39(y)
 		print(' level 3: 1 / 16 the size of xception39 after block4', y.size())
+		y = F.adaptive_avg_pool2d(y, (28, 28))
 		y_arm = self.arm1_context_path(y)
 		print(' the size of image feature after first y_arm', y_arm.size())
 
 		y = self.block5_xception39(y)
 		# print('the size of xception39 after block5', y.size())
-		y = self.block6_xception39(y)
+		y_32 = self.block6_xception39(y)
 		print(' level 4: 1 / 32 the size of xception39 after block6', y.size())
+		y = F.adaptive_avg_pool2d(y_32, (28, 28))
 		y_arm2 = self.arm2_context_path(y)
+		print(' the size of image feature after second y_arm', y_arm2.size())
+		y_32_up = F.adaptive_avg_pool2d(y_32, (28, 28))
+		print(' the size of y_32_up is ', y_32_up.size())
 
+		# Concatenate the image feature of ARM1, ARM2 and y_32_up
+		y_cat = torch.cat([y_arm, y_arm2], dim=1)
+		y_cat = torch.cat([y_cat, y_32_up], dim=1)
+		print(' size of y_cat is ', y_cat.size())
 		# Spatial Path
 		sp = self.block1_spatial_path(input)
 		print(' level 1 of spatial path, the size of sp is ', sp.size())
@@ -306,6 +315,8 @@ class Bisenet(nn.Module):
 		print(' level 2 of spatial path, the size of sp is ', sp.size())
 		sp = self.block3_spatial_path(sp)
 		print(' level 3 of spatial path, the size of sp is ', sp.size())
+		y_cat = torch.cat([y_cat, sp])
+		print('')
 
 		y = F.adaptive_avg_pool2d(y, (1, 1))
 		y = y.view(y.size(0), -1)
