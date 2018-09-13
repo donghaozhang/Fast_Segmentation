@@ -137,26 +137,32 @@ class AttentionRefinementModule(nn.Module):
 
 class FeatureFusionModule(nn.Module):
 	def __init__(self, conv_in_channels, conv_out_channels, pool_size):
-		self.conv1 = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=3, stride=1, padding=0)
+		super(FeatureFusionModule, self).__init__()
+		self.conv1 = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=3, stride=1, padding=1)
 		self.bn1 = nn.BatchNorm2d(num_features=conv_out_channels)
-		self.conv2 = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=1, stride=1, padding=0)
-		self.conv3 = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=1, stride=1, padding=0)
-		# self.relu1 =
+		self.conv2 = nn.Conv2d(in_channels=conv_out_channels, out_channels=conv_out_channels, kernel_size=1, stride=1, padding=0)
+		self.conv3 = nn.Conv2d(in_channels=conv_out_channels, out_channels=conv_out_channels, kernel_size=1, stride=1, padding=0)
+		self.pool_size = pool_size
 
 	def forward(self, x):
+		print(' debug: the size of input is ', x.size())
 		x = self.conv1(x)
 		x = self.bn1(x)
 		x = F.relu(x)
 		before_mul = x
 
 		# global pool + conv + relu + conv + sigmoid
+		x = F.adaptive_avg_pool2d(x, (self.pool_size, self.pool_size))
+		print(' debug: the size x after ', x.size())
 		x = self.conv2(x)
+		x = F.relu(x, inplace=False)
+		x = self.conv3(x)
 		x = F.sigmoid(x)
+		print('the size of before_mul is ', before_mul.size())
+		print('the size of x is ', x.size())
 		x = torch.mul(before_mul, x)
 		x = x + before_mul
 		return x
-
-
 
 class Xception(nn.Module):
 	"""
@@ -283,6 +289,8 @@ class Bisenet(nn.Module):
 		self.block1_spatial_path = SpatialPathModule(conv_in_channels=3, conv_out_channels=64)
 		self.block2_spatial_path = SpatialPathModule(conv_in_channels=64, conv_out_channels=64)
 		self.block3_spatial_path = SpatialPathModule(conv_in_channels=64, conv_out_channels=64)
+
+		self.FFM = FeatureFusionModule(conv_in_channels=224, conv_out_channels=2, pool_size=28)
 	# #------- init weights --------
 	# for m in self.modules():
 	#     if isinstance(m, nn.Conv2d):
@@ -340,13 +348,16 @@ class Bisenet(nn.Module):
 		# Concatenate the image feature after context path : y_cat and the image feature after spatial path : sp
 		y_cat = torch.cat([y_cat, sp], dim=1)
 		print(' the size of image feature after the context path and spatial path is ', y_cat.size())
+		y_cat = self.FFM(y_cat)
+		print(' the size of image feature after FFM', y_cat.size())
 
-
-		y = F.adaptive_avg_pool2d(y, (1, 1))
-		y = y.view(y.size(0), -1)
-		# print('the size of xception39 is ', y.size()[1])
-		y = self.fc_xception39(y)
-		return y
+		y_cat = F.adaptive_avg_pool2d(y_cat, (256, 256))
+		print(' the size of image feature after FFM', y_cat.size())
+		# y = F.adaptive_avg_pool2d(y, (1, 1))
+		# y = y.view(y.size(0), -1)
+		# # print('the size of xception39 is ', y.size()[1])
+		# y = self.fc_xception39(y)
+		return y_cat
 
 def bisenet(num_classes=1000, pretrained='imagenet'):
 	import torch
