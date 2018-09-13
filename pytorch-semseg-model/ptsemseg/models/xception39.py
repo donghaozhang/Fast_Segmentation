@@ -51,7 +51,6 @@ class SeparableConv2d(nn.Module):
 		x = self.pointwise(x)
 		return x
 
-
 class Block(nn.Module):
 	def __init__(self, in_filters, out_filters, reps, strides=1, start_with_relu=True, grow_first=True):
 		super(Block, self).__init__()
@@ -136,6 +135,29 @@ class AttentionRefinementModule(nn.Module):
 		x = torch.mul(input, x)
 		return x
 
+class FeatureFusionModule(nn.Module):
+	def __init__(self, conv_in_channels, conv_out_channels, pool_size):
+		self.conv1 = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=3, stride=1, padding=0)
+		self.bn1 = nn.BatchNorm2d(num_features=conv_out_channels)
+		self.conv2 = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=1, stride=1, padding=0)
+		self.conv3 = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=1, stride=1, padding=0)
+		# self.relu1 =
+
+	def forward(self, x):
+		x = self.conv1(x)
+		x = self.bn1(x)
+		x = F.relu(x)
+		before_mul = x
+
+		# global pool + conv + relu + conv + sigmoid
+		x = self.conv2(x)
+		x = F.sigmoid(x)
+		x = torch.mul(before_mul, x)
+		x = x + before_mul
+		return x
+
+
+
 class Xception(nn.Module):
 	"""
 	Xception optimized for the ImageNet dataset, as specified in
@@ -200,7 +222,6 @@ class Xception(nn.Module):
 		print('the size of xception39 is ', y.size()[1])
 		y = self.fc_xception39(y)
 		return y
-
 
 def xception39(num_classes=1000, pretrained='imagenet'):
 	import torch
@@ -315,15 +336,17 @@ class Bisenet(nn.Module):
 		print(' level 2 of spatial path, the size of sp is ', sp.size())
 		sp = self.block3_spatial_path(sp)
 		print(' level 3 of spatial path, the size of sp is ', sp.size())
-		y_cat = torch.cat([y_cat, sp])
-		print('')
+
+		# Concatenate the image feature after context path : y_cat and the image feature after spatial path : sp
+		y_cat = torch.cat([y_cat, sp], dim=1)
+		print(' the size of image feature after the context path and spatial path is ', y_cat.size())
+
 
 		y = F.adaptive_avg_pool2d(y, (1, 1))
 		y = y.view(y.size(0), -1)
 		# print('the size of xception39 is ', y.size()[1])
 		y = self.fc_xception39(y)
 		return y
-
 
 def bisenet(num_classes=1000, pretrained='imagenet'):
 	import torch
