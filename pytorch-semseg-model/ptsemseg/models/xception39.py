@@ -158,8 +158,8 @@ class FeatureFusionModule(nn.Module):
 		x = F.relu(x, inplace=False)
 		x = self.conv3(x)
 		x = F.sigmoid(x)
-		print('the size of before_mul is ', before_mul.size())
-		print('the size of x is ', x.size())
+		# print('the size of before_mul is ', before_mul.size())
+		# print('the size of x is ', x.size())
 		x = torch.mul(before_mul, x)
 		x = x + before_mul
 		return x
@@ -358,6 +358,15 @@ class Bisenet(nn.Module):
 		# # print('the size of xception39 is ', y.size()[1])
 		# y = self.fc_xception39(y)
 		return y_cat
+
+class
+
+class bisenet3D(nn.Module):
+		"""
+		bisenet3D is the fast 3D msegmentation model
+		"""
+		def __init__(self):
+			super(bisenet3D, self).__init__()
 
 def bisenet(num_classes=1000, pretrained='imagenet'):
 	import torch
