@@ -114,7 +114,71 @@ class Block(nn.Module):
 		x += skip
 		return x
 
+class Block3D(nn.Module):
+	def __init__(self, in_filters, out_filters, reps, strides=1, start_with_relu=True, grow_first=True):
+		super(Block3D, self).__init__()
+
+		if out_filters != in_filters or strides != 1:
+			self.skip = nn.Conv3d(in_filters, out_filters, 1, stride=strides, bias=False)
+			self.skipbn = nn.BatchNorm3d(out_filters)
+		else:
+			self.skip = None
+
+		self.relu = nn.ReLU(inplace=True)
+		rep = []
+
+		filters = in_filters
+		if grow_first:
+			rep.append(self.relu)
+			rep.append(SeparableConv3d(in_filters, out_filters, 3, stride=1, padding=1, bias=False))
+			rep.append(nn.BatchNorm3d(out_filters))
+			filters = out_filters
+
+		for i in range(reps - 1):
+			rep.append(self.relu)
+			rep.append(SeparableConv3d(filters, filters, 3, stride=1, padding=1, bias=False))
+			rep.append(nn.BatchNorm3d(filters))
+
+		if not grow_first:
+			rep.append(self.relu)
+			rep.append(SeparableConv3d(in_filters, out_filters, 3, stride=1, padding=1, bias=False))
+			rep.append(nn.BatchNorm3d(out_filters))
+
+		if not start_with_relu:
+			rep = rep[1:]
+		else:
+			rep[0] = nn.ReLU(inplace=False)
+
+		if strides != 1:
+			rep.append(nn.MaxPool3d(3, strides, 1))
+		self.rep = nn.Sequential(*rep)
+
+	def forward(self, inp):
+		x = self.rep(inp)
+
+		if self.skip is not None:
+			skip = self.skip(inp)
+			skip = self.skipbn(skip)
+		else:
+			skip = inp
+
+		x += skip
+		return x
+
 class SpatialPathModule(nn.Module):
+	def __init__(self, conv_in_channels, conv_out_channels):
+		super(SpatialPathModule, self).__init__()
+		self.conv1 = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, stride=2, kernel_size=3, padding=1)
+		self.bn = nn.BatchNorm2d(num_features=conv_out_channels)
+		self.relu = nn.ReLU(inplace=False)
+
+	def forward(self, x):
+		x = self.conv1(x)
+		x = self.bn(x)
+		out = self.relu(x)
+		return out
+
+class SpatialPath3DModule(nn.Module):
 	def __init__(self, conv_in_channels, conv_out_channels):
 		super(SpatialPathModule, self).__init__()
 		self.conv1 = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, stride=2, kernel_size=3, padding=1)
@@ -139,6 +203,26 @@ class AttentionRefinementModule(nn.Module):
 		input = x
 		# print('the input size of ARM is ', x.size())
 		x = F.adaptive_avg_pool2d(x, (self.pool_size, self.pool_size))
+		# print('the input size of ARM after adaptive average pooling is ', x.size())
+		x = self.conv(x)
+		x = self.bn(x)
+		x = self.sigmod(x)
+		# print('debug purpose ', 'the size of input ', input.size(), 'the size of x is ', x.size())
+		x = torch.mul(input, x)
+		return x
+
+class AttentionRefinement3DModule(nn.Module):
+	def __init__(self, conv_in_channels, conv_out_channels, pool_size):
+		super(AttentionRefinementModule, self).__init__()
+		self.conv = nn.Conv3d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=1, stride=1, padding=0)
+		self.bn = nn.BatchNorm3d(num_features=conv_out_channels)
+		self.sigmod = nn.Sigmoid()
+		self.pool_size = pool_size
+
+	def forward(self, x):
+		input = x
+		# print('the input size of ARM is ', x.size())
+		x = F.adaptive_avg_pool3d(x, (self.pool_size, self.pool_size))
 		# print('the input size of ARM after adaptive average pooling is ', x.size())
 		x = self.conv(x)
 		x = self.bn(x)
@@ -370,57 +454,6 @@ class Bisenet(nn.Module):
 		# # print('the size of xception39 is ', y.size()[1])
 		# y = self.fc_xception39(y)
 		return y_cat
-
-class Block3D(nn.Module):
-	def __init__(self, in_filters, out_filters, reps, strides=1, start_with_relu=True, grow_first=True):
-		super(Block3D, self).__init__()
-
-		if out_filters != in_filters or strides != 1:
-			self.skip = nn.Conv3d(in_filters, out_filters, 1, stride=strides, bias=False)
-			self.skipbn = nn.BatchNorm3d(out_filters)
-		else:
-			self.skip = None
-
-		self.relu = nn.ReLU(inplace=True)
-		rep = []
-
-		filters = in_filters
-		if grow_first:
-			rep.append(self.relu)
-			rep.append(SeparableConv3d(in_filters, out_filters, 3, stride=1, padding=1, bias=False))
-			rep.append(nn.BatchNorm3d(out_filters))
-			filters = out_filters
-
-		for i in range(reps - 1):
-			rep.append(self.relu)
-			rep.append(SeparableConv3d(filters, filters, 3, stride=1, padding=1, bias=False))
-			rep.append(nn.BatchNorm3d(filters))
-
-		if not grow_first:
-			rep.append(self.relu)
-			rep.append(SeparableConv3d(in_filters, out_filters, 3, stride=1, padding=1, bias=False))
-			rep.append(nn.BatchNorm3d(out_filters))
-
-		if not start_with_relu:
-			rep = rep[1:]
-		else:
-			rep[0] = nn.ReLU(inplace=False)
-
-		if strides != 1:
-			rep.append(nn.MaxPool3d(3, strides, 1))
-		self.rep = nn.Sequential(*rep)
-
-	def forward(self, inp):
-		x = self.rep(inp)
-
-		if self.skip is not None:
-			skip = self.skip(inp)
-			skip = self.skipbn(skip)
-		else:
-			skip = inp
-
-		x += skip
-		return x
 
 class bisenet3D(nn.Module):
 		"""
