@@ -180,9 +180,9 @@ class SpatialPathModule(nn.Module):
 
 class SpatialPath3DModule(nn.Module):
 	def __init__(self, conv_in_channels, conv_out_channels):
-		super(SpatialPathModule, self).__init__()
-		self.conv1 = nn.Conv2d(in_channels=conv_in_channels, out_channels=conv_out_channels, stride=2, kernel_size=3, padding=1)
-		self.bn = nn.BatchNorm2d(num_features=conv_out_channels)
+		super(SpatialPath3DModule, self).__init__()
+		self.conv1 = nn.Conv3d(in_channels=conv_in_channels, out_channels=conv_out_channels, stride=2, kernel_size=3, padding=1)
+		self.bn = nn.BatchNorm3d(num_features=conv_out_channels)
 		self.relu = nn.ReLU(inplace=False)
 
 	def forward(self, x):
@@ -213,7 +213,7 @@ class AttentionRefinementModule(nn.Module):
 
 class AttentionRefinement3DModule(nn.Module):
 	def __init__(self, conv_in_channels, conv_out_channels, pool_size):
-		super(AttentionRefinementModule, self).__init__()
+		super(AttentionRefinement3DModule, self).__init__()
 		self.conv = nn.Conv3d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=1, stride=1, padding=0)
 		self.bn = nn.BatchNorm3d(num_features=conv_out_channels)
 		self.sigmod = nn.Sigmoid()
@@ -222,7 +222,7 @@ class AttentionRefinement3DModule(nn.Module):
 	def forward(self, x):
 		input = x
 		# print('the input size of ARM is ', x.size())
-		x = F.adaptive_avg_pool3d(x, (self.pool_size, self.pool_size))
+		x = F.adaptive_avg_pool3d(x, (self.pool_size, self.pool_size, self.pool_size))
 		# print('the input size of ARM after adaptive average pooling is ', x.size())
 		x = self.conv(x)
 		x = self.bn(x)
@@ -262,7 +262,7 @@ class FeatureFusionModule(nn.Module):
 
 class FeatureFusion3DModule(nn.Module):
 	def __init__(self, conv_in_channels, conv_out_channels, pool_size):
-		super(FeatureFusionModule, self).__init__()
+		super(FeatureFusion3DModule, self).__init__()
 		self.conv1 = nn.Conv3d(in_channels=conv_in_channels, out_channels=conv_out_channels, kernel_size=3, stride=1, padding=1)
 		self.bn1 = nn.BatchNorm3d(num_features=conv_out_channels)
 		self.conv2 = nn.Conv3d(in_channels=conv_out_channels, out_channels=conv_out_channels, kernel_size=1, stride=1, padding=0)
@@ -277,7 +277,7 @@ class FeatureFusion3DModule(nn.Module):
 		before_mul = x
 
 		# global pool + conv + relu + conv + sigmoid
-		x = F.adaptive_avg_pool3d(x, (self.pool_size, self.pool_size))
+		x = F.adaptive_avg_pool3d(x, (self.pool_size, self.pool_size, self.pool_size))
 		print(' debug: the size x after ', x.size())
 		x = self.conv2(x)
 		x = F.relu(x, inplace=False)
@@ -410,37 +410,37 @@ class Bisenet3D(nn.Module):
 		Args:
 			num_classes: number of classes
 		"""
-		super(Bisenet, self).__init__()
+		super(Bisenet3D, self).__init__()
 		self.num_classes = num_classes
 
 		# Context Path
-		self.conv1_xception39 = nn.Conv2d(in_channels=3, out_channels=8, kernel_size=3, stride=2, padding=0, bias=False)
-		self.maxpool_xception39 = nn.MaxPool2d(kernel_size=3, stride=2)
+		self.conv1_xception39 = nn.Conv3d(in_channels=3, out_channels=8, kernel_size=3, stride=2, padding=0, bias=False)
+		self.maxpool_xception39 = nn.MaxPool3d(kernel_size=3, stride=2)
 
 		# P3
-		self.block1_xception39 = Block(in_filters=8, out_filters=16, reps=1, strides=2, start_with_relu=True, grow_first=True)
-		self.block2_xception39 = Block(in_filters=16, out_filters=16, reps=3, strides=1, start_with_relu=True, grow_first=True)
+		self.block1_xception39 = Block3D(in_filters=8, out_filters=16, reps=1, strides=2, start_with_relu=True, grow_first=True)
+		self.block2_xception39 = Block3D(in_filters=16, out_filters=16, reps=3, strides=1, start_with_relu=True, grow_first=True)
 
 		# P4
-		self.block3_xception39 = Block(in_filters=16, out_filters=32, reps=1, strides=2, start_with_relu=True, grow_first=True)
-		self.block4_xception39 = Block(in_filters=32, out_filters=32, reps=7, strides=1, start_with_relu=True, grow_first=True)
+		self.block3_xception39 = Block3D(in_filters=16, out_filters=32, reps=1, strides=2, start_with_relu=True, grow_first=True)
+		self.block4_xception39 = Block3D(in_filters=32, out_filters=32, reps=7, strides=1, start_with_relu=True, grow_first=True)
 
 		# P5
-		self.block5_xception39 = Block(in_filters=32, out_filters=64, reps=1, strides=2, start_with_relu=True, grow_first=True)
-		self.block6_xception39 = Block(in_filters=64, out_filters=64, reps=3, strides=1, start_with_relu=True, grow_first=True)
+		self.block5_xception39 = Block3D(in_filters=32, out_filters=64, reps=1, strides=2, start_with_relu=True, grow_first=True)
+		self.block6_xception39 = Block3D(in_filters=64, out_filters=64, reps=3, strides=1, start_with_relu=True, grow_first=True)
 
 		self.fc_xception39 = nn.Linear(in_features=64, out_features=self.num_classes)
 
-		self.arm1_context_path = AttentionRefinementModule(conv_in_channels=32, conv_out_channels=32, pool_size=28)
-		self.arm2_context_path = AttentionRefinementModule(conv_in_channels=64, conv_out_channels=64, pool_size=28)
+		self.arm1_context_path = AttentionRefinement3DModule(conv_in_channels=32, conv_out_channels=32, pool_size=28)
+		self.arm2_context_path = AttentionRefinement3DModule(conv_in_channels=64, conv_out_channels=64, pool_size=28)
 		# self.block3_spatial_path = AttentionRefinementModule(conv_in_channels=64, conv_out_channels=64)
 
 		# Spatial Path
-		self.block1_spatial_path = SpatialPathModule(conv_in_channels=3, conv_out_channels=64)
-		self.block2_spatial_path = SpatialPathModule(conv_in_channels=64, conv_out_channels=64)
-		self.block3_spatial_path = SpatialPathModule(conv_in_channels=64, conv_out_channels=64)
+		self.block1_spatial_path = SpatialPath3DModule(conv_in_channels=3, conv_out_channels=64)
+		self.block2_spatial_path = SpatialPath3DModule(conv_in_channels=64, conv_out_channels=64)
+		self.block3_spatial_path = SpatialPath3DModule(conv_in_channels=64, conv_out_channels=64)
 
-		self.FFM = FeatureFusionModule(conv_in_channels=224, conv_out_channels=2, pool_size=28)
+		self.FFM = FeatureFusion3DModule(conv_in_channels=224, conv_out_channels=2, pool_size=28)
 	# #------- init weights --------
 	# for m in self.modules():
 	#     if isinstance(m, nn.Conv2d):
@@ -469,7 +469,7 @@ class Bisenet3D(nn.Module):
 		# print(' level 3: 1 / 16 the size of xception39 after block3', y.size())
 		y = self.block4_xception39(y)
 		print(' level 3: 1 / 16 the size of xception39 after block4', y.size())
-		y = F.adaptive_avg_pool2d(y, (28, 28))
+		y = F.adaptive_avg_pool3d(y, (28, 28, 28))
 		y_arm = self.arm1_context_path(y)
 		print(' the size of image feature after first y_arm', y_arm.size())
 
@@ -477,10 +477,10 @@ class Bisenet3D(nn.Module):
 		# print('the size of xception39 after block5', y.size())
 		y_32 = self.block6_xception39(y)
 		print(' level 4: 1 / 32 the size of xception39 after block6', y.size())
-		y = F.adaptive_avg_pool2d(y_32, (28, 28))
+		y = F.adaptive_avg_pool3d(y_32, (28, 28, 28))
 		y_arm2 = self.arm2_context_path(y)
 		print(' the size of image feature after second y_arm', y_arm2.size())
-		y_32_up = F.adaptive_avg_pool2d(y_32, (28, 28))
+		y_32_up = F.adaptive_avg_pool3d(y_32, (28, 28, 28))
 		print(' the size of y_32_up is ', y_32_up.size())
 
 		# Concatenate the image feature of ARM1, ARM2 and y_32_up
@@ -501,7 +501,7 @@ class Bisenet3D(nn.Module):
 		y_cat = self.FFM(y_cat)
 		print(' the size of image feature after FFM', y_cat.size())
 
-		y_cat = F.adaptive_avg_pool2d(y_cat, (256, 256))
+		y_cat = F.adaptive_avg_pool3d(y_cat, (256, 256, 256))
 		print(' the size of image feature after FFM', y_cat.size())
 		# y = F.adaptive_avg_pool2d(y, (1, 1))
 		# y = y.view(y.size(0), -1)

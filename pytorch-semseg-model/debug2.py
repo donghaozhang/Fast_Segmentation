@@ -28,6 +28,7 @@ from scipy.stats import norm
 # Try to create 3D fake data
 fake_im_num = 1
 bisenet_model_3D = bisenet3D(num_classes=1000, pretrained=False)
+bisenet_model_3D.cuda()
 numpy_fake_image_3d = np.random.rand(fake_im_num, 3, 224, 224, 224)
 tensor_fake_image_3d = torch.FloatTensor(numpy_fake_image_3d)
 torch_fake_image_3d = Variable(tensor_fake_image_3d).cuda()
