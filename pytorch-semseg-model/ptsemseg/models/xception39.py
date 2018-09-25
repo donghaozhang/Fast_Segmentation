@@ -241,7 +241,7 @@ class FeatureFusionModule(nn.Module):
 		self.pool_size = pool_size
 
 	def forward(self, x):
-		print(' debug: the size of input is ', x.size())
+		# print(' debug: the size of input is ', x.size())
 		x = self.conv1(x)
 		x = self.bn1(x)
 		x = F.relu(x)
@@ -249,7 +249,7 @@ class FeatureFusionModule(nn.Module):
 
 		# global pool + conv + relu + conv + sigmoid
 		x = F.adaptive_avg_pool2d(x, (self.pool_size, self.pool_size))
-		print(' debug: the size x after ', x.size())
+		# print(' debug: the size x after ', x.size())
 		x = self.conv2(x)
 		x = F.relu(x, inplace=False)
 		x = self.conv3(x)
