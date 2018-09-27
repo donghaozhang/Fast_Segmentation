@@ -29,7 +29,7 @@ xception_model = xception39(num_classes=1000, pretrained=False)
 xception_model.cuda()
 
 # 2D version of numpy_fake_image should be your 3D input block
-fake_im_num = 1
+fake_im_num = 10
 numpy_fake_image = np.random.rand(fake_im_num, 3, 224, 224)
 tensor_fake_image = torch.FloatTensor(numpy_fake_image)
 torch_fake_image = Variable(tensor_fake_image).cuda()
