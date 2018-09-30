@@ -1,6 +1,5 @@
 import sys
 import torch
-import visdom
 import argparse
 import numpy as np
 import torch.nn as nn
@@ -23,24 +22,16 @@ def train(args):
 
 
     # Setup Dataloader
+    print('###### Step One: Setup Dataloader')
     data_loader = get_loader(args.dataset)
     data_path = get_data_path(args.dataset)
-    print(data_path)
     writer = SummaryWriter()
     loader = data_loader(data_path, is_transform=True, img_size=(args.img_rows, args.img_cols))
     n_classes = loader.n_classes
     trainloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4, shuffle=True)
 
-    # Setup visdom for visualization
-    # vis = visdom.Visdom()
-    # loss_window = vis.line(X=torch.zeros((1,)).cpu(),
-    #                        Y=torch.zeros((1)).cpu(),
-    #                        opts=dict(xlabel='epoch',
-    #                                  ylabel='Loss',
-    #                                  title='Training Loss',
-    #                                  legend=['Loss']))
-
     # Setup Model
+    print('###### Step Two: Setup Model')
     model = get_model(args.arch, n_classes)
 
     if torch.cuda.is_available():
@@ -51,62 +42,37 @@ def train(args):
         test_image, test_segmap = loader[0]
         test_image = Variable(test_image.unsqueeze(0))
 
-    # optimizer = torch.optim.SGD(model.parameters(), lr=args.l_rate, momentum=0.99, weight_decay=5e-4)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.l_rate*100)
+
+    # Train Model
+    print('###### Step Three: Training Model')
     for epoch in range(args.n_epoch):
-        # print('-------')
         img_counter = 1
         loss_sum = 0
         for i, (images, labels) in enumerate(trainloader):
             img_counter = img_counter + 1
-            # print(img_counter)
-            # print('i value: ', i)
             if torch.cuda.is_available():
                 images = Variable(images.cuda(0))
                 labels = Variable(labels.cuda(0))
             else:
                 images = Variable(images)
                 labels = Variable(labels)
-
-            # iter = len(trainloader)*epoch + i
-            # poly_lr_scheduler(optimizer, args.l_rate, iter)
             
             optimizer.zero_grad()
             outputs = model(images)
             loss = cross_entropy2d(outputs, labels)
             loss.backward()
-
             optimizer.step()
-
-            # vis.line(
-            #     X=torch.ones((1, 1)).cpu() * i,
-            #     Y=torch.Tensor([loss.data[0]]).unsqueeze(0).cpu(),
-            #     win=loss_window,
-            #     update='append')
-
-            if (i+1) % 2 == 0:
-                print("Epoch [%d/%d] Loss: %.4f" % (epoch+1, args.n_epoch, loss.data[0]))
-            # print('The number of img_counter is ', img_counter)
             loss_sum = loss_sum + torch.Tensor([loss.data[0]]).unsqueeze(0).cpu()
+
         avg_loss = loss_sum / img_counter
-        # print(avg_loss)
         avg_loss_array = np.array(avg_loss)
         print('The current loss of epoch ', epoch, 'is', avg_loss_array[0][0])
-        # vis.line(
-        #     X=torch.ones((1, 1)).cpu() * epoch,
-        #     Y=avg_loss,
-        #     win=loss_window,
-        #     update='append')
         writer.add_scalar('train_main_loss', avg_loss_array[0][0], epoch)
         test_output = model(test_image)
         predicted = loader.decode_segmap(test_output[0].cpu().data.numpy().argmax(0))
         target = loader.decode_segmap(test_segmap.numpy())
-        # if epoch == 1:
-        #     vis.image(test_image[0].cpu().data.numpy(), opts=dict(title='Test Epoch' + str(epoch)))
-        #     vis.image(np.transpose(target, [2,0,1]), opts=dict(title='GT Epoch' + str(epoch)))
-        # vis.image(np.transpose(predicted, [2,0,1]), opts=dict(title='Predicted Epoch' + str(epoch)))
-
-        torch.save(model, "{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
+        torch.save(model, "runs/{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')
