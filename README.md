@@ -2,6 +2,12 @@
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/meetshah1995/pytorch-semseg/blob/master/LICENSE)
 
+# Personal Use
+
+* source activate oldtorch
+* python train.py --arch gcnnet --dataset cellcancer --n_epoch 10 --batch_size 24
+
+
 ## Semantic Segmentation Algorithms Implemented in PyTorch
 
 This repository aims at mirroring popular semantic segmentation architectures in PyTorch. 
