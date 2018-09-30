@@ -20,17 +20,30 @@ class brats17Loader(data.Dataset):
         self.n_classes = 2
         self.files = collections.defaultdict(list)
 
-        for split in ["train", "test", "val"]:
-            file_list = os.listdir(root + '/' + split)
-            self.files[split] = file_list
+        # for split in ["train", "test", "val"]:
+        #     file_list = os.listdir(root + '/' + split)
+        #     self.files[split] = file_list
 
     def __len__(self):
         return len(self.files[self.split])
 
     def __getitem__(self, index):
-        img_name = self.files[self.split][index]
-        img_path = self.root + '/' + self.split + '/' + img_name
+        # img_name = self.files[self.split][index]
+        train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_66.txt'
+        text_file = open(train_names_path, "r")
+        lines = text_file.readlines()
+        print(lines[0])
+        img_name = self.files[index]
+        print(img_name)
+        print('the value of index is ', index)
+        # img_path = self.root + '/' + self.split + '/' + img_name
+        img_num = np.random.randint(0, 67)
+        img_path = self.root + '/' + lines[img_num]
+
+        print('the current img_path is ', img_path)
+        print(len(lines))
         lbl_path = self.root + '/' + self.split + 'annot/' + img_name
+        print(lbl_path)
         img = cv2.imread(img_path)
         img = np.asarray(img)
         img = np.array(img, dtype=np.uint8)

@@ -46,6 +46,6 @@
 
   "brats17_loader":
   {
-    "data_path": "/home/donghao/Desktop/donghao/fast_segmentation/digital_pathology_2018/Digital Pathology_segmentation_training_set"
+    "data_path": "/home/donghao/Desktop/donghao/brain_segmentation/brain_data_full"
   }
 }
