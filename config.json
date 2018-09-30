@@ -42,5 +42,10 @@
   "cellcancer":
   {
     "data_path": "/home/donghao/Desktop/donghao/fast_segmentation/digital_pathology_2018/Digital Pathology_segmentation_training_set"
+  },
+
+  "brats17_loader":
+  {
+    "data_path": "/home/donghao/Desktop/donghao/fast_segmentation/digital_pathology_2018/Digital Pathology_segmentation_training_set"
   }
 }

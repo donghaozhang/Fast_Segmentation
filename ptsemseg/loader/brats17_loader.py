@@ -93,8 +93,9 @@ class brats17Loader(data.Dataset):
 
 if __name__ == '__main__':
     # local_path = '/home/neuron/Desktop/Donghao/cellsegmentation/normalCV/cell_cancer_dataset'
-    local_path = '/home/neuron/Desktop/Donghao/cellsegmentation/main_data_folder/maskrcnn/compare'
-    dst = cellcancerLoader(local_path, is_transform=True)
+    # local_path = '/home/neuron/Desktop/Donghao/cellsegmentation/main_data_folder/maskrcnn/compare'
+	# local_path = '/home/donghao/Desktop/donghao/brain_segmentation/brain_data_full/HGG'
+    dst = brats17Loader(local_path, is_transform=True)
     trainloader = data.DataLoader(dst, batch_size=4)
     for i, data in enumerate(trainloader):
         imgs, labels = data
