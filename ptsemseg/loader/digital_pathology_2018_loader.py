@@ -32,7 +32,7 @@ class cellcancerLoader(data.Dataset):
         img_name = self.files[self.split][index]
         img_path = self.root + '/' + self.split + '/' + img_name
         lbl_path = self.root + '/' + self.split + 'annot/' + img_name
-        print(img_path)
+        # print(img_path)
         # print('index value ', index)
         # if img_path == '/home/neuron/Desktop/Donghao/cellsegmentation/main_data_folder/cross_val_v2/val1/comp_exp/train/555.png':
         #     print('bingo')

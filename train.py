@@ -1,6 +1,6 @@
 import sys
 import torch
-# import visdom
+import visdom
 import argparse
 import numpy as np
 import torch.nn as nn
@@ -17,21 +17,22 @@ from ptsemseg.loader import get_loader, get_data_path
 from ptsemseg.loss import cross_entropy2d
 from ptsemseg.metrics import scores
 from lr_scheduling import *
-# from tensorboardX import SummaryWriter
+from tensorboardX import SummaryWriter
 
 def train(args):
 
-    # writer = SummaryWriter('exp')
+
     # Setup Dataloader
     data_loader = get_loader(args.dataset)
     data_path = get_data_path(args.dataset)
+    print(data_path)
+    writer = SummaryWriter()
     loader = data_loader(data_path, is_transform=True, img_size=(args.img_rows, args.img_cols))
     n_classes = loader.n_classes
     trainloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4, shuffle=True)
 
     # Setup visdom for visualization
     # vis = visdom.Visdom()
-
     # loss_window = vis.line(X=torch.zeros((1,)).cpu(),
     #                        Y=torch.zeros((1)).cpu(),
     #                        opts=dict(xlabel='epoch',
@@ -53,6 +54,7 @@ def train(args):
     # optimizer = torch.optim.SGD(model.parameters(), lr=args.l_rate, momentum=0.99, weight_decay=5e-4)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.l_rate*100)
     for epoch in range(args.n_epoch):
+        # print('-------')
         img_counter = 1
         loss_sum = 0
         for i, (images, labels) in enumerate(trainloader):
@@ -82,18 +84,20 @@ def train(args):
             #     win=loss_window,
             #     update='append')
 
-            if (i+1) % 20 == 0:
+            if (i+1) % 2 == 0:
                 print("Epoch [%d/%d] Loss: %.4f" % (epoch+1, args.n_epoch, loss.data[0]))
             # print('The number of img_counter is ', img_counter)
             loss_sum = loss_sum + torch.Tensor([loss.data[0]]).unsqueeze(0).cpu()
         avg_loss = loss_sum / img_counter
+        # print(avg_loss)
         avg_loss_array = np.array(avg_loss)
+        print('The current loss of epoch ', epoch, 'is', avg_loss_array[0][0])
         # vis.line(
         #     X=torch.ones((1, 1)).cpu() * epoch,
         #     Y=avg_loss,
         #     win=loss_window,
         #     update='append')
-        # writer.add_scalar('train_main_loss', avg_loss, epoch)
+        writer.add_scalar('train_main_loss', avg_loss_array[0][0], epoch)
         test_output = model(test_image)
         predicted = loader.decode_segmap(test_output[0].cpu().data.numpy().argmax(0))
         target = loader.decode_segmap(test_segmap.numpy())
