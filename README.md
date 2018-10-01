@@ -5,7 +5,7 @@
 # Personal Use
 
 * source activate oldtorch
-* python train.py --arch gcnnet --dataset cellcancer --n_epoch 10 --batch_size 24
+* python train.py --arch gcnnet --dataset cellcancer --n_epoch 10 --batch_size 2
 * tensorboard --logdir runs
 
 ## Semantic Segmentation Algorithms Implemented in PyTorch
