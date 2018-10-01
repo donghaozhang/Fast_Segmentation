@@ -73,22 +73,40 @@ class Brats17Loader(data.Dataset):
         log('The current image number is {}'.format(img_num))
         cur_im_name = lines[img_num]
         cur_im_name = cur_im_name.replace("\n", "")
-        img_path = self.root + '/' + cur_im_name
+        print('I am so confused', os.path.basename(cur_im_name))
+        # print('the name after splitting is ', cur_im_name.split("|\")[0])
+        img_path = self.root + '/' + cur_im_name + '/' + os.path.basename(cur_im_name)
+
+        # T1 img
         t1_img_path = img_path + '_t1.nii.gz'
+        t1_img = load_nifty_volume_as_array(filename=t1_img_path, with_header=False)
         log(t1_img_path)
+        log('The shape of t1 img is {}'.format(t1_img.shape))
+
+        # T1ce img
         t1ce_img_path = img_path + '_t1ce.nii.gz'
+        t1ce_img = load_nifty_volume_as_array(filename=t1ce_img_path, with_header=False)
         log(t1ce_img_path)
+        log('The shape of t1ce img is {}'.format(t1ce_img.shape))
+
+        # Flair img
         flair_img_path = img_path + '_flair.nii.gz'
+        flair_img = load_nifty_volume_as_array(filename=flair_img_path, with_header=False)
         log(flair_img_path)
+        log('The shape of flair img is {}'.format(flair_img.shape))
+
+        # T2 img
         t2_img_path = img_path + '_t2.nii.gz'
+        t2_img = load_nifty_volume_as_array(filename=flair_img_path, with_header=False)
         log(t2_img_path)
+        log('The shape of t1ce img is {}'.format(t2_img.shape))
+
+        # segmentation path
         lbl_path = img_path + '_seg.nii.gz'
         log(lbl_path)
 
-        img = cv2.imread(img_path)
         img = np.asarray(img)
         img = np.array(img, dtype=np.uint8)
-        lbl = m.imread(lbl_path)
         lbl = np.array(lbl, dtype=np.int32)
 
         if self.is_transform:
