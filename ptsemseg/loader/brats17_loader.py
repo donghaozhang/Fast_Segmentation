@@ -101,16 +101,28 @@ class Brats17Loader(data.Dataset):
         log(t2_img_path)
         log('The shape of t1ce img is {}'.format(t2_img.shape))
 
-        # segmentation path
+        # segmentation label
         lbl_path = img_path + '_seg.nii.gz'
+        lbl = load_nifty_volume_as_array(filename=lbl_path, with_header=False)
         log(lbl_path)
+        log('The shape of label map img is {}'.format(t2_img.shape))
 
+
+        img = np.stack((t1_img, t2_img, t1ce_img, flair_img))
+        log('The shape of image after stacking is : {}'.format(img.shape))
         img = np.asarray(img)
         img = np.array(img, dtype=np.uint8)
         lbl = np.array(lbl, dtype=np.int32)
+        # img (4, 155, 240, 240)
+        # label (155, 240, 240)
 
+        log('The maximum value of img is {}'.format(np.max(img)))
+        log('The unique values of label {}'.format(np.unique(lbl)))
+        # transform is disabled for now
         if self.is_transform:
             img, lbl = self.transform(img, lbl)
+
+
         return img, lbl
 
     def transform(self, img, lbl):
@@ -161,7 +173,7 @@ class Brats17Loader(data.Dataset):
 
 
 if __name__ == '__main__':
-    dst = Brats17Loader(local_path, is_transform=True)
+    dst = Brats17Loader(local_path, is_transform=False)
     trainloader = data.DataLoader(dst, batch_size=4)
     for i, data in enumerate(trainloader):
         imgs, labels = data
