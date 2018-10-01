@@ -6,7 +6,7 @@
 
 * source activate oldtorch
 * python train.py --arch gcnnet --dataset cellcancer --n_epoch 10 --batch_size 2
-* python train.py --arch gcnnet --dataset brats17_loader --n_epoch 10 --batch_size 2
+* python train.py --arch gcnnet --dataset brats17_loader --n_epoch 10 --batch_size 2 (not working because of 
 * tensorboard --logdir runs
 
 ## Semantic Segmentation Algorithms Implemented in PyTorch
