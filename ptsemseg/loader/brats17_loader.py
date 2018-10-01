@@ -6,11 +6,52 @@ import numpy as np
 import scipy.misc as m
 import matplotlib.pyplot as plt
 import cv2
+import nibabel
+import SimpleITK as sitk
 
 from torch.utils import data
+DEBUG = True
 
 
-class brats17Loader(data.Dataset):
+def log(s):
+    if DEBUG:
+        print(s)
+
+
+def load_3d_volume_as_array(filename):
+    if('.nii' in filename):
+        return load_nifty_volume_as_array(filename)
+    elif('.mha' in filename):
+        return load_mha_volume_as_array(filename)
+    raise ValueError('{0:} unspported file format'.format(filename))
+
+
+def load_mha_volume_as_array(filename):
+    img = sitk.ReadImage(filename)
+    nda = sitk.GetArrayFromImage(img)
+    return nda
+
+
+def load_nifty_volume_as_array(filename, with_header = False):
+    """
+    load nifty image into numpy array, and transpose it based on the [z,y,x] axis order
+    The output array shape is like [Depth, Height, Width]
+    inputs:
+        filename: the input file name, should be *.nii or *.nii.gz
+        with_header: return affine and hearder infomation
+    outputs:
+        data: a numpy data array
+    """
+    img = nibabel.load(filename)
+    data = img.get_data()
+    data = np.transpose(data, [2,1,0])
+    if(with_header):
+        return data, img.affine, img.header
+    else:
+        return data
+
+
+class Brats17Loader(data.Dataset):
     def __init__(self, root, split="train", is_transform=False, img_size=None):
         self.root = root
         self.split = split
@@ -20,55 +61,52 @@ class brats17Loader(data.Dataset):
         self.n_classes = 2
         self.files = collections.defaultdict(list)
 
-        # for split in ["train", "test", "val"]:
-        #     file_list = os.listdir(root + '/' + split)
-        #     self.files[split] = file_list
-
     def __len__(self):
         return len(self.files[self.split])
 
     def __getitem__(self, index):
-        # img_name = self.files[self.split][index]
         train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_66.txt'
         text_file = open(train_names_path, "r")
         lines = text_file.readlines()
-        print(lines[0])
         img_name = self.files[index]
-        print(img_name)
-        print('the value of index is ', index)
-        # img_path = self.root + '/' + self.split + '/' + img_name
-        img_num = np.random.randint(0, 67)
-        img_path = self.root + '/' + lines[img_num]
+        img_num = np.random.randint(0, 66)
+        log('The current image number is {}'.format(img_num))
+        cur_im_name = lines[img_num]
+        cur_im_name = cur_im_name.replace("\n", "")
+        img_path = self.root + '/' + cur_im_name
+        t1_img_path = img_path + '_t1.nii.gz'
+        log(t1_img_path)
+        t1ce_img_path = img_path + '_t1ce.nii.gz'
+        log(t1ce_img_path)
+        flair_img_path = img_path + '_flair.nii.gz'
+        log(flair_img_path)
+        t2_img_path = img_path + '_t2.nii.gz'
+        log(t2_img_path)
+        lbl_path = img_path + '_seg.nii.gz'
+        log(lbl_path)
 
-        print('the current img_path is ', img_path)
-        print(len(lines))
-        lbl_path = self.root + '/' + self.split + 'annot/' + img_name
-        print(lbl_path)
         img = cv2.imread(img_path)
         img = np.asarray(img)
         img = np.array(img, dtype=np.uint8)
         lbl = m.imread(lbl_path)
         lbl = np.array(lbl, dtype=np.int32)
+
         if self.is_transform:
             img, lbl = self.transform(img, lbl)
         return img, lbl
 
     def transform(self, img, lbl):
         img = img[:, :, ::-1]
-        # print('image shape is ', img.shape)
         img = img.astype(np.float64)
         img -= self.mean
         img = m.imresize(img, (self.img_size[0], self.img_size[1]))
-        # print('the current size of the image is ', self.img_size[0], self.img_size[1])
         img = img.astype(float) / 255.0
         # NHWC -> NCHW
         img = img.transpose(2, 0, 1)
-        # print('transform is being called')
         img = torch.from_numpy(img).float()
 
         lbl = self.encode_segmap(lbl)
         lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), 'nearest', mode='F')
-        # print('the shape of lbl after resize is ', lbl.shape)
         lbl = torch.from_numpy(lbl).long()
         return img, lbl
 
@@ -105,10 +143,7 @@ class brats17Loader(data.Dataset):
 
 
 if __name__ == '__main__':
-    # local_path = '/home/neuron/Desktop/Donghao/cellsegmentation/normalCV/cell_cancer_dataset'
-    # local_path = '/home/neuron/Desktop/Donghao/cellsegmentation/main_data_folder/maskrcnn/compare'
-	# local_path = '/home/donghao/Desktop/donghao/brain_segmentation/brain_data_full/HGG'
-    dst = brats17Loader(local_path, is_transform=True)
+    dst = Brats17Loader(local_path, is_transform=True)
     trainloader = data.DataLoader(dst, batch_size=4)
     for i, data in enumerate(trainloader):
         imgs, labels = data
