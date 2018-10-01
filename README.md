@@ -6,11 +6,7 @@
 
 * source activate oldtorch
 * python train.py --arch gcnnet --dataset cellcancer --n_epoch 10 --batch_size 2
-    # For 2D dataset keep is_transform True
-    # loader = data_loader(data_path, is_transform=True, img_size=(args.img_rows, args.img_cols))
 * python train.py --arch gcnnet --dataset brats17_loader --n_epoch 10 --batch_size 2
-    # For 3D dataset keep is_transform False
-    # loader = data_loader(data_path, is_transform=False, img_size=(args.img_rows, args.img_cols)) 
 * tensorboard --logdir runs
 
 ## Semantic Segmentation Algorithms Implemented in PyTorch
