@@ -26,7 +26,13 @@ def train(args):
     data_loader = get_loader(args.dataset)
     data_path = get_data_path(args.dataset)
     writer = SummaryWriter()
-    loader = data_loader(data_path, is_transform=True, img_size=(args.img_rows, args.img_cols))
+
+    # For 2D dataset keep is_transform True
+    # loader = data_loader(data_path, is_transform=True, img_size=(args.img_rows, args.img_cols))
+
+    # For 3D dataset keep is_transform False
+    loader = data_loader(data_path, is_transform=False, img_size=(args.img_rows, args.img_cols))
+
     n_classes = loader.n_classes
     trainloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4, shuffle=True)
 

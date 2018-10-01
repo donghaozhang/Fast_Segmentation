@@ -62,7 +62,7 @@ class Brats17Loader(data.Dataset):
         self.files = collections.defaultdict(list)
 
     def __len__(self):
-        return len(self.files[self.split])
+        return 66
 
     def __getitem__(self, index):
         train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_66.txt'
@@ -118,11 +118,14 @@ class Brats17Loader(data.Dataset):
 
         log('The maximum value of img is {}'.format(np.max(img)))
         log('The unique values of label {}'.format(np.unique(lbl)))
+        log('!!!!!!! I should convert labels of [0 1 2 4] into [0, 1, 2, 3]!!!!!')
         # transform is disabled for now
         if self.is_transform:
             img, lbl = self.transform(img, lbl)
 
-
+        # convert numpy type into torch type
+        img = torch.from_numpy(img).float()
+        lbl = torch.from_numpy(lbl).long()
         return img, lbl
 
     def transform(self, img, lbl):
@@ -173,7 +176,7 @@ class Brats17Loader(data.Dataset):
 
 
 if __name__ == '__main__':
-    dst = Brats17Loader(local_path, is_transform=False)
+    dst = Brats17Loader()
     trainloader = data.DataLoader(dst, batch_size=4)
     for i, data in enumerate(trainloader):
         imgs, labels = data
