@@ -52,6 +52,31 @@ def load_nifty_volume_as_array(filename, with_header = False):
         return data
 
 
+def convert_label(in_volume, label_convert_source, label_convert_target):
+    """
+    convert the label value in a volume
+    inputs:
+        in_volume: input nd volume with label set label_convert_source
+        label_convert_source: a list of integers denoting input labels, e.g., [0, 1, 2, 4]
+        label_convert_target: a list of integers denoting output labels, e.g.,[0, 1, 2, 3]
+    outputs:
+        out_volume: the output nd volume with label set label_convert_target
+    """
+    mask_volume = np.zeros_like(in_volume)
+    convert_volume = np.zeros_like(in_volume)
+    for i in range(len(label_convert_source)):
+        source_lab = label_convert_source[i]
+        target_lab = label_convert_target[i]
+        if(source_lab != target_lab):
+            temp_source = np.asarray(in_volume == source_lab)
+            temp_target = target_lab * temp_source
+            mask_volume = mask_volume + temp_source
+            convert_volume = convert_volume + temp_target
+    out_volume = in_volume * 1
+    out_volume[mask_volume>0] = convert_volume[mask_volume>0]
+    return out_volume
+
+
 class Brats17Loader(data.Dataset):
     def __init__(self, root, split="train", is_transform=False, img_size=None):
         self.root = root
@@ -110,7 +135,7 @@ class Brats17Loader(data.Dataset):
 
 
         img = np.stack((t1_img, t2_img, t1ce_img, flair_img))
-        patch_size = [120, 160, 160]
+        patch_size = [80, 120, 120]
         log('the patch_size is {} {} {}'.format(patch_size[0], patch_size[1], patch_size[2]))
         x_start = randint(0, img.shape[1] - patch_size[0])
         x_end = x_start + patch_size[0]
@@ -125,6 +150,7 @@ class Brats17Loader(data.Dataset):
         img = np.asarray(img)
         img = np.array(img, dtype=np.uint8)
         lbl = np.array(lbl, dtype=np.int32)
+        lbl = convert_label(lbl, [0, 1, 2, 4], [0, 1, 2, 3])
         log('The shape of label is : {}'.format(lbl.shape))
         lbl = lbl[x_start:x_end, y_start:y_end, z_start:z_end]
         # img (4, 155, 240, 240)

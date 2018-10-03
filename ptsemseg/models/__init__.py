@@ -6,7 +6,8 @@ from ptsemseg.models.unet import *
 from ptsemseg.models.pspnet import *
 from ptsemseg.models.linknet import *
 from ptsemseg.models.gcnnet import *
-from ptsemseg.models.bisenet3D import *
+from ptsemseg.models.bisenet3Dbrain import Bisenet3DBrain
+# from ptsemseg.models.bisenet3D import *
 
 
 def get_model(name, n_classes):
@@ -45,8 +46,11 @@ def get_model(name, n_classes):
         model = model(num_classes=n_classes,
                       input_size=256,
                       pretrained=True)
-    elif name == 'bisenet3D':
-        model = model()
+    # elif name == 'bisenet3D':
+    #     model = model()
+
+    elif name == 'bisenet3Dbrain':
+        model = model(im_sz=[80, 120, 120])
 
     else:
         raise 'Model {} not available'.format(name)
@@ -63,5 +67,6 @@ def _get_model_instance(name):
         'pspnet': pspnet,
         'linknet': linknet,
         'gcnnet': GCN,
-        'bisenet3D': Bisenet3D,
+        'bisenet3Dbrain': Bisenet3DBrain,
+        # 'bisenet3D': Bisenet3D,
     }[name]
