@@ -104,12 +104,18 @@ class AttentionRefinement3DModule(nn.Module):
 	def forward(self, x):
 		input = x
 		# print('the input size of ARM is ', x.size())
-		x = F.adaptive_avg_pool3d(x, (self.pool_size, self.pool_size, self.pool_size))
+
+		# Convert type from float to int
+		avg_pool_size_x = int(self.pool_size[0] / 8)
+		avg_pool_size_y = int(self.pool_size[1] / 8)
+		avg_pool_size_z = int(self.pool_size[2] / 8)
+		print('The value of pool_size is ', self.pool_size)
+		x = F.adaptive_avg_pool3d(x, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
 		# print('the input size of ARM after adaptive average pooling is ', x.size())
 		x = self.conv(x)
 		x = self.bn(x)
 		x = self.sigmod(x)
-		# print('debug purpose ', 'the size of input ', input.size(), 'the size of x is ', x.size())
+		print('debug purpose ', 'the size of input ', input.size(), 'the size of x is ', x.size())
 		x = torch.mul(input, x)
 		return x
 
@@ -130,15 +136,18 @@ class FeatureFusion3DModule(nn.Module):
 		x = F.relu(x)
 		before_mul = x
 
+		avg_pool_size_x = int(self.pool_size[0] / 8)
+		avg_pool_size_y = int(self.pool_size[1] / 8)
+		avg_pool_size_z = int(self.pool_size[2] / 8)
 		# global pool + conv + relu + conv + sigmoid
-		x = F.adaptive_avg_pool3d(x, (self.pool_size, self.pool_size, self.pool_size))
+		x = F.adaptive_avg_pool3d(x, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
 		print(' debug: the size x after ', x.size())
 		x = self.conv2(x)
 		x = F.relu(x, inplace=False)
 		x = self.conv3(x)
 		x = F.sigmoid(x)
-		# print('the size of before_mul is ', before_mul.size())
-		# print('the size of x is ', x.size())
+		log('debug====> the size of before_mul is {}'.format(before_mul.size()))
+		log('debug====> the size of x is {}'.format(x.size()))
 		x = torch.mul(before_mul, x)
 		x = x + before_mul
 		return x
@@ -263,16 +272,15 @@ class Bisenet3DBrain(nn.Module):
 	https://arxiv.org/pdf/1610.02357.pdf
 	"""
 
-	def __init__(self, num_classes=1000):
+	def __init__(self, im_sz):
 		""" Constructor
 		Args:
 			num_classes: number of classes
 		"""
 		super(Bisenet3DBrain, self).__init__()
-		self.num_classes = num_classes
 
 		# Context Path
-		self.conv1_xception39 = nn.Conv3d(in_channels=3, out_channels=8, kernel_size=3, stride=2, padding=1, bias=False)
+		self.conv1_xception39 = nn.Conv3d(in_channels=4, out_channels=8, kernel_size=3, stride=2, padding=1, bias=False)
 		self.maxpool_xception39 = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
 
 		# P3
@@ -287,18 +295,16 @@ class Bisenet3DBrain(nn.Module):
 		self.block5_xception39 = Block3D(in_filters=32, out_filters=64, reps=1, strides=2, start_with_relu=True, grow_first=True)
 		self.block6_xception39 = Block3D(in_filters=64, out_filters=64, reps=3, strides=1, start_with_relu=True, grow_first=True)
 
-		self.fc_xception39 = nn.Linear(in_features=64, out_features=self.num_classes)
-
-		self.arm1_context_path = AttentionRefinement3DModule(conv_in_channels=32, conv_out_channels=32, pool_size=28)
-		self.arm2_context_path = AttentionRefinement3DModule(conv_in_channels=64, conv_out_channels=64, pool_size=28)
+		self.arm1_context_path = AttentionRefinement3DModule(conv_in_channels=32, conv_out_channels=32, pool_size=im_sz)
+		self.arm2_context_path = AttentionRefinement3DModule(conv_in_channels=64, conv_out_channels=64, pool_size=im_sz)
 		# self.block3_spatial_path = AttentionRefinementModule(conv_in_channels=64, conv_out_channels=64)
 
 		# Spatial Path
-		self.block1_spatial_path = SpatialPath3DModule(conv_in_channels=3, conv_out_channels=64)
+		self.block1_spatial_path = SpatialPath3DModule(conv_in_channels=4, conv_out_channels=64)
 		self.block2_spatial_path = SpatialPath3DModule(conv_in_channels=64, conv_out_channels=64)
 		self.block3_spatial_path = SpatialPath3DModule(conv_in_channels=64, conv_out_channels=64)
 
-		self.FFM = FeatureFusion3DModule(conv_in_channels=224, conv_out_channels=2, pool_size=28)
+		self.FFM = FeatureFusion3DModule(conv_in_channels=128, conv_out_channels=2, pool_size=im_sz)
 	# #------- init weights --------
 	# for m in self.modules():
 	#     if isinstance(m, nn.Conv2d):
@@ -343,23 +349,23 @@ class Bisenet3DBrain(nn.Module):
 		y = self.block4_xception39(y)
 		log(' level 3: 1 / 16 the size of xception39 after block4 is {}'.format(y.size()))
 		# level one 256 / 2 => 112, level two 112 / 2 => 56, level three 56 / 2 => 28
-		y = F.adaptive_avg_pool3d(y, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
-		y_arm = self.arm1_context_path(y)
+		y_16 = F.adaptive_avg_pool3d(y, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
+		y_arm = self.arm1_context_path(y_16)
 		log(' the size of image feature after first y_arm is {}'.format(y_arm.size()))
 
-		y = self.block5_xception39(y)
-		# print('the size of xception39 after block5', y.size())
-		y_32 = self.block6_xception39(y)
-		log(' level 4: 1 / 32 the size of xception39 after block6 is {}'.format(y.size()))
-		y = F.adaptive_avg_pool3d(y_32, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
-		y_arm2 = self.arm2_context_path(y)
-		log(' the size of image feature after second y_arm is {}'.format(y_arm2.size()))
-		y_32_up = F.adaptive_avg_pool3d(y_32, (avg_pool_size_x, 28, 28))
-		log(' the size of y_32_up is {}'.format(y_32_up.size()))
+		# y = self.block5_xception39(y)
+		# # print('the size of xception39 after block5', y.size())
+		# y_32 = self.block6_xception39(y)
+		# log(' level 4: 1 / 32 the size of xception39 after block6 is {}'.format(y.size()))
+		# y = F.adaptive_avg_pool3d(y_32, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
+		# y_arm2 = self.arm2_context_path(y)
+		# log(' the size of image feature after second y_arm is {}'.format(y_arm2.size()))
+		y_16_up = F.adaptive_avg_pool3d(y_16, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
+		log(' the size of y_32_up is {}'.format(y_16_up.size()))
 
-		# Concatenate the image feature of ARM1, ARM2 and y_32_up
-		y_cat = torch.cat([y_arm, y_arm2], dim=1)
-		y_cat = torch.cat([y_cat, y_32_up], dim=1)
+		# Concatenate the image feature of ARM1,
+		y_cat = torch.cat([y_arm, y_16_up], dim=1)
+		# y_cat = torch.cat([y_cat, y_32_up], dim=1)
 		log(' size of y_cat is {}'.format(y_cat.size()))
 		# Spatial Path
 		sp = self.block1_spatial_path(input)
@@ -375,7 +381,7 @@ class Bisenet3DBrain(nn.Module):
 		y_cat = self.FFM(y_cat)
 		log(' the size of image feature after FFM is {}'.format(y_cat.size()))
 
-		y_cat = F.adaptive_avg_pool3d(y_cat, (input_size_x, input_size_y, 256))
+		y_cat = F.adaptive_avg_pool3d(y_cat, (input_size_x, input_size_y, input_size_z))
 		log(' the size of image feature after FFM is {}'.format(y_cat.size()))
 		# y = F.adaptive_avg_pool2d(y, (1, 1))
 		# y = y.view(y.size(0), -1)
@@ -387,9 +393,9 @@ class Bisenet3DBrain(nn.Module):
 print(".........")
 print('The start of 3D bisenet')
 fake_im_num = 1
-bisenet_model_3D = Bisenet3DBrain()
+bisenet_model_3D = Bisenet3DBrain(im_sz=[80, 120, 120])
 bisenet_model_3D.cuda()
-numpy_fake_image_3d = np.random.rand(fake_im_num, 3, 224, 224, 224)
+numpy_fake_image_3d = np.random.rand(fake_im_num, 4, 80, 120, 120)
 tensor_fake_image_3d = torch.FloatTensor(numpy_fake_image_3d)
 torch_fake_image_3d = Variable(tensor_fake_image_3d).cuda()
 output_3d = bisenet_model_3D(torch_fake_image_3d)
