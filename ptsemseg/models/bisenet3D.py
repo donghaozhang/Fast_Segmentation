@@ -1,6 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+DEBUG = True
+
+
+def log(s):
+    if DEBUG:
+        print(s)
 
 
 class SeparableConv3d(nn.Module):
@@ -148,8 +154,8 @@ class Bisenet3D(nn.Module):
 		self.num_classes = num_classes
 
 		# Context Path
-		self.conv1_xception39 = nn.Conv3d(in_channels=4, out_channels=8, kernel_size=3, stride=2, padding=0, bias=False)
-		self.maxpool_xception39 = nn.MaxPool3d(kernel_size=3, stride=2)
+		self.conv1_xception39 = nn.Conv3d(in_channels=4, out_channels=8, kernel_size=3, stride=2, padding=1, bias=False)
+		self.maxpool_xception39 = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
 
 		# P3
 		self.block1_xception39 = Block3D(in_filters=8, out_filters=16, reps=1, strides=2, start_with_relu=True, grow_first=True)
@@ -186,57 +192,57 @@ class Bisenet3D(nn.Module):
 	# #-----------------------------
 
 	def forward(self, input):
-		print('the size of input image is ', input.size())
+		log('the size of input image is {}'.format(input.size()))
 
 		# Context Path
 		y = self.conv1_xception39(input)
-		# print('the size of xception39 after conv1', y.size())
+		log('the size of xception39 after conv1 is {}'.format(y.size()))
 		y = self.maxpool_xception39(y)
-		print(' level 1: 1 / 4 the size of xception39 after maxpool', y.size())
+		log(' level 1: 1 / 4 the size of xception39 after maxpool is {}'.format(y.size()))
 
 		y = self.block1_xception39(y)
 		# print('the size of xception39 after block1', y.size())
 		y = self.block2_xception39(y)
-		print(' level 2: 1 / 8 the size of xception39 after block2', y.size())
+		log(' level 2: 1 / 8 the size of xception39 after block2 is {}'.format(y.size()))
 
 		y = self.block3_xception39(y)
 		# print(' level 3: 1 / 16 the size of xception39 after block3', y.size())
 		y = self.block4_xception39(y)
-		print(' level 3: 1 / 16 the size of xception39 after block4', y.size())
+		log(' level 3: 1 / 16 the size of xception39 after block4 is {}'.format(y.size()))
 		y = F.adaptive_avg_pool3d(y, (28, 28, 28))
 		y_arm = self.arm1_context_path(y)
-		print(' the size of image feature after first y_arm', y_arm.size())
+		log(' the size of image feature after first y_arm is {}'.format(y_arm.size()))
 
 		y = self.block5_xception39(y)
 		# print('the size of xception39 after block5', y.size())
 		y_32 = self.block6_xception39(y)
-		print(' level 4: 1 / 32 the size of xception39 after block6', y.size())
+		log(' level 4: 1 / 32 the size of xception39 after block6 is {}'.format(y.size()))
 		y = F.adaptive_avg_pool3d(y_32, (28, 28, 28))
 		y_arm2 = self.arm2_context_path(y)
-		print(' the size of image feature after second y_arm', y_arm2.size())
+		log(' the size of image feature after second y_arm is {}'.format(y_arm2.size()))
 		y_32_up = F.adaptive_avg_pool3d(y_32, (28, 28, 28))
-		print(' the size of y_32_up is ', y_32_up.size())
+		log(' the size of y_32_up is '.format(y_32_up.size()))
 
 		# Concatenate the image feature of ARM1, ARM2 and y_32_up
 		y_cat = torch.cat([y_arm, y_arm2], dim=1)
 		y_cat = torch.cat([y_cat, y_32_up], dim=1)
-		print(' size of y_cat is ', y_cat.size())
+		log(' size of y_cat is '.format(y_cat.size()))
 		# Spatial Path
 		sp = self.block1_spatial_path(input)
-		print(' level 1 of spatial path, the size of sp is ', sp.size())
+		log(' level 1 of spatial path, the size of sp is {}'.format(sp.size()))
 		sp = self.block2_spatial_path(sp)
-		print(' level 2 of spatial path, the size of sp is ', sp.size())
+		log(' level 2 of spatial path, the size of sp is {}'.format(sp.size()))
 		sp = self.block3_spatial_path(sp)
-		print(' level 3 of spatial path, the size of sp is ', sp.size())
+		log(' level 3 of spatial path, the size of sp is {}'.format(sp.size()))
 
 		# Concatenate the image feature after context path : y_cat and the image feature after spatial path : sp
 		y_cat = torch.cat([y_cat, sp], dim=1)
-		print(' the size of image feature after the context path and spatial path is ', y_cat.size())
+		log(' the size of image feature after the context path and spatial path is {}'.format(y_cat.size()))
 		y_cat = self.FFM(y_cat)
-		print(' the size of image feature after FFM', y_cat.size())
+		log(' the size of image feature after FFM is {}'.format(y_cat.size()))
 
 		y_cat = F.adaptive_avg_pool3d(y_cat, (256, 256, 256))
-		print(' the size of image feature after FFM', y_cat.size())
+		log(' the size of image feature after FFM is {}'.format(y_cat.size()))
 		# y = F.adaptive_avg_pool2d(y, (1, 1))
 		# y = y.view(y.size(0), -1)
 		# # print('the size of xception39 is ', y.size()[1])

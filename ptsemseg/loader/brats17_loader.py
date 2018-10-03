@@ -8,9 +8,10 @@ import matplotlib.pyplot as plt
 import cv2
 import nibabel
 import SimpleITK as sitk
+from random import randint
 
 from torch.utils import data
-DEBUG = True
+DEBUG = False
 
 
 def log(s):
@@ -73,7 +74,7 @@ class Brats17Loader(data.Dataset):
         log('The current image number is {}'.format(img_num))
         cur_im_name = lines[img_num]
         cur_im_name = cur_im_name.replace("\n", "")
-        print('I am so confused', os.path.basename(cur_im_name))
+        # print('I am so confused', os.path.basename(cur_im_name))
         # print('the name after splitting is ', cur_im_name.split("|\")[0])
         img_path = self.root + '/' + cur_im_name + '/' + os.path.basename(cur_im_name)
 
@@ -109,10 +110,23 @@ class Brats17Loader(data.Dataset):
 
 
         img = np.stack((t1_img, t2_img, t1ce_img, flair_img))
+        patch_size = [120, 160, 160]
+        log('the patch_size is {} {} {}'.format(patch_size[0], patch_size[1], patch_size[2]))
+        x_start = randint(0, img.shape[1] - patch_size[0])
+        x_end = x_start + patch_size[0]
+        y_start = randint(0, img.shape[2] - patch_size[1])
+        y_end = y_start + patch_size[1]
+        z_start = randint(0, img.shape[3] - patch_size[2])
+        z_end = z_start + patch_size[2]
+        log('x_start is {} x_end is {}'.format(x_start, x_end))
+        log('The shape of image after stacking is : {}'.format(img.shape))
+        img = img[:, x_start:x_end, y_start:y_end, z_start:z_end]
         log('The shape of image after stacking is : {}'.format(img.shape))
         img = np.asarray(img)
         img = np.array(img, dtype=np.uint8)
         lbl = np.array(lbl, dtype=np.int32)
+        log('The shape of label is : {}'.format(lbl.shape))
+        lbl = lbl[x_start:x_end, y_start:y_end, z_start:z_end]
         # img (4, 155, 240, 240)
         # label (155, 240, 240)
 
