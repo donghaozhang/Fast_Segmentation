@@ -50,7 +50,7 @@ def cross_entropy3d_new(input, target, weight=None, size_average=True):
 def cross_entropy3d(input, target, weight=None, size_average=True):
 
     log('The size of input is {}'.format(input.size()))
-    input = F.log_softmax(input)
+    input = F.log_softmax(input, dim=1)
     log('LOSS=>CrossEntropy3D=>input.size():{} target.size():{}'.format(input.size(), target.size()))
     loss = nn.CrossEntropyLoss(weight=weight, size_average=size_average)
     return loss(input, target)

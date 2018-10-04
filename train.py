@@ -72,13 +72,17 @@ def train(args):
                 loss = cross_entropy2d(outputs, labels)
             loss.backward()
             optimizer.step()
-            loss_sum = loss_sum + torch.Tensor([loss.data[0]]).unsqueeze(0).cpu()
+            loss_sum = loss_sum + torch.Tensor([loss.data]).unsqueeze(0).cpu()
 
         avg_loss = loss_sum / img_counter
         avg_loss_array = np.array(avg_loss)
-        print('The current loss of epoch ', epoch, 'is', avg_loss_array[0][0])
+        print('The current loss of epoch', epoch, 'is', avg_loss_array[0][0])
+
+        if epoch % 5 == 0:
+            torch.save(model, "runs/{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
+        # training model will be saved
         # writer.add_scalar('train_main_loss', avg_loss_array[0][0], epoch)
-        test_output = model(test_image)
+        # test_output = model(test_image)
         # predicted = loader.decode_segmap(test_output[0].cpu().data.numpy().argmax(0))
         # target = loader.decode_segmap(test_segmap.numpy())
         # torch.save(model, "runs/{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
