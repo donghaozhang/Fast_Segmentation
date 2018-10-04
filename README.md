@@ -6,6 +6,8 @@
 
 * source activate oldtorch
 * python train.py --arch gcnnet --dataset cellcancer --n_epoch 10 --batch_size 2
+* source activate deepenv  
+* pytorch version 0.4.0
 * python train.py --arch bisenet3D --dataset brats17_loader --n_epoch 10 --batch_size 2 (not working because of 3D)
 * tensorboard --logdir runs
 
