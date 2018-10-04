@@ -13,7 +13,7 @@ from torch.utils import data
 # get_model is defined in the __init__.py file
 from ptsemseg.models import get_model
 from ptsemseg.loader import get_loader, get_data_path
-from ptsemseg.loss import cross_entropy2d, cross_entropy3d_new
+from ptsemseg.loss import cross_entropy2d, cross_entropy3d
 from ptsemseg.metrics import scores
 from lr_scheduling import *
 # from tensorboardX import SummaryWriter
@@ -67,7 +67,7 @@ def train(args):
             optimizer.zero_grad()
             outputs = model(images)
             if args.arch == 'bisenet3Dbrain':
-                loss = cross_entropy3d_new(outputs, labels)
+                loss = cross_entropy3d(outputs, labels)
             else:
                 loss = cross_entropy2d(outputs, labels)
             loss.backward()
@@ -81,7 +81,7 @@ def train(args):
         test_output = model(test_image)
         # predicted = loader.decode_segmap(test_output[0].cpu().data.numpy().argmax(0))
         # target = loader.decode_segmap(test_segmap.numpy())
-        torch.save(model, "runs/{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
+        # torch.save(model, "runs/{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')
@@ -97,7 +97,7 @@ if __name__ == '__main__':
                         help='# of the epochs')
     parser.add_argument('--batch_size', nargs='?', type=int, default=1,
                         help='Batch Size')
-    parser.add_argument('--l_rate', nargs='?', type=float, default=1e-3,
+    parser.add_argument('--l_rate', nargs='?', type=float, default=1e-4,
                         help='Learning Rate')
     parser.add_argument('--feature_scale', nargs='?', type=int, default=1,
                         help='Divider for # of features to use')

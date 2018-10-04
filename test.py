@@ -49,13 +49,13 @@ def test(args):
         images = Variable(img)
 
     outputs = model(images)
-    print('the size of outputs is ', outputs.size())
-    print('the size of outputs is ', outputs.data.max(1)[1].size())
+    log('the size of outputs is '.format(outputs.size()))
+    log('the size of outputs is ', outputs.data.max(1)[1].size())
     pred = np.squeeze(outputs.data.cpu().numpy(), axis=0)
     # pred = pred[0,:,:] > pred[1,:,:]
     # pred = pred * 255
     # pred = outputs.data.cpu().numpy()
-    print(pred.shape)
+    log(''pred.shape)
     #print('the size of pred is ', pred.shape())
     # fig = plt.figure()
     # plt.imshow(pred[1,:,:])

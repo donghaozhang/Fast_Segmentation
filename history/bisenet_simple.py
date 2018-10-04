@@ -6,12 +6,13 @@ from torch.autograd import Variable
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-DEBUG = True
+
+DEBUG = False
 
 
 def log(s):
-    if DEBUG:
-        print(s)
+	if DEBUG:
+		print(s)
 
 
 class SeparableConv3d(nn.Module):
@@ -115,7 +116,8 @@ class AttentionRefinement3DModule(nn.Module):
 		x = self.conv(x)
 		x = self.bn(x)
 		x = self.sigmod(x)
-		print('debug purpose ', 'the size of input ', input.size(), 'the size of x is ', x.size())
+		log('the size of input '.format(input.size()))
+		log('the size of x is '.format(x.size()))
 		x = torch.mul(input, x)
 		return x
 
@@ -130,7 +132,7 @@ class FeatureFusion3DModule(nn.Module):
 		self.pool_size = pool_size
 
 	def forward(self, x):
-		print(' debug: the size of input is ', x.size())
+		log(' debug: the size of input is '.format(x.size()))
 		x = self.conv1(x)
 		x = self.bn1(x)
 		x = F.relu(x)
@@ -141,7 +143,7 @@ class FeatureFusion3DModule(nn.Module):
 		avg_pool_size_z = int(self.pool_size[2] / 8)
 		# global pool + conv + relu + conv + sigmoid
 		x = F.adaptive_avg_pool3d(x, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
-		print(' debug: the size x after ', x.size())
+		log(' debug: the size x after '.format(x.size()))
 		x = self.conv2(x)
 		x = F.relu(x, inplace=False)
 		x = self.conv3(x)
@@ -390,8 +392,8 @@ class Bisenet3DBrain(nn.Module):
 		return y_cat
 
 # bisenet 3D brain
-print(".........")
-print('The start of 3D bisenet')
+log(".........")
+log('The start of 3D bisenet')
 fake_im_num = 1
 bisenet_model_3D = Bisenet3DBrain(im_sz=[80, 120, 120])
 bisenet_model_3D.cuda()
@@ -399,7 +401,7 @@ numpy_fake_image_3d = np.random.rand(fake_im_num, 4, 80, 120, 120)
 tensor_fake_image_3d = torch.FloatTensor(numpy_fake_image_3d)
 torch_fake_image_3d = Variable(tensor_fake_image_3d).cuda()
 output_3d = bisenet_model_3D(torch_fake_image_3d)
-print(".........")
+log(".........")
 
 # # bisenet 3D
 # print(".........")
