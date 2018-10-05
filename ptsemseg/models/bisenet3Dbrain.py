@@ -103,11 +103,8 @@ class AttentionRefinement3DModule(nn.Module):
 		# print('the input size of ARM is ', x.size())
 
 		# Convert type from float to int
-		avg_pool_size_x = int(self.pool_size[0] / 8)
-		avg_pool_size_y = int(self.pool_size[1] / 8)
-		avg_pool_size_z = int(self.pool_size[2] / 8)
 		log('The value of pool_size is {}'.format(self.pool_size))
-		x = F.adaptive_avg_pool3d(x, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
+		x = F.adaptive_avg_pool3d(x, (self.pool_size[0], self.pool_size[1], self.pool_size[2]))
 		log('the input size of ARM after adaptive average pooling is '.format(x.size()))
 		x = self.conv(x)
 		x = self.bn(x)
@@ -134,11 +131,8 @@ class FeatureFusion3DModule(nn.Module):
 		x = F.relu(x)
 		before_mul = x
 
-		avg_pool_size_x = int(self.pool_size[0] / 8)
-		avg_pool_size_y = int(self.pool_size[1] / 8)
-		avg_pool_size_z = int(self.pool_size[2] / 8)
 		# global pool + conv + relu + conv + sigmoid
-		x = F.adaptive_avg_pool3d(x, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
+		x = F.adaptive_avg_pool3d(x, (self.pool_size[0], self.pool_size[1], self.pool_size[2]))
 		log(' debug: the size x after '.format(x.size()))
 		x = self.conv2(x)
 		x = F.relu(x, inplace=False)
@@ -164,6 +158,12 @@ class Bisenet3DBrain(nn.Module):
 		"""
 		super(Bisenet3DBrain, self).__init__()
 
+		# The size input image
+		self.im_sz = []
+
+		# The size of pool size
+		self.pool_size = []
+
 		# Context Path
 		self.conv1_xception39 = nn.Conv3d(in_channels=4, out_channels=8, kernel_size=3, stride=2, padding=1, bias=False)
 		self.maxpool_xception39 = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
@@ -180,8 +180,8 @@ class Bisenet3DBrain(nn.Module):
 		self.block5_xception39 = Block3D(in_filters=32, out_filters=64, reps=1, strides=2, start_with_relu=True, grow_first=True)
 		self.block6_xception39 = Block3D(in_filters=64, out_filters=64, reps=3, strides=1, start_with_relu=True, grow_first=True)
 
-		self.arm1_context_path = AttentionRefinement3DModule(conv_in_channels=32, conv_out_channels=32, pool_size=im_sz)
-		self.arm2_context_path = AttentionRefinement3DModule(conv_in_channels=64, conv_out_channels=64, pool_size=im_sz)
+		self.arm1_context_path = AttentionRefinement3DModule(conv_in_channels=32, conv_out_channels=32, pool_size=self.pool_size)
+		self.arm2_context_path = AttentionRefinement3DModule(conv_in_channels=64, conv_out_channels=64, pool_size=self.pool_size)
 		# self.block3_spatial_path = AttentionRefinementModule(conv_in_channels=64, conv_out_channels=64)
 
 		# Spatial Path
@@ -189,7 +189,7 @@ class Bisenet3DBrain(nn.Module):
 		self.block2_spatial_path = SpatialPath3DModule(conv_in_channels=64, conv_out_channels=64)
 		self.block3_spatial_path = SpatialPath3DModule(conv_in_channels=64, conv_out_channels=64)
 
-		self.FFM = FeatureFusion3DModule(conv_in_channels=128, conv_out_channels=4, pool_size=im_sz)
+		self.FFM = FeatureFusion3DModule(conv_in_channels=128, conv_out_channels=4, pool_size=self.pool_size)
 	# #------- init weights --------
 	# for m in self.modules():
 	#     if isinstance(m, nn.Conv2d):
@@ -203,6 +203,7 @@ class Bisenet3DBrain(nn.Module):
 	def forward(self, input):
 		log('the size of input image is {}'.format(input.size()))
 		input_size = input.size()
+		self.im_sz = input.size()
 		# Convert type from float to int
 		input_size_x = int(input_size[2])
 		input_size_y = int(input_size[3])
@@ -216,6 +217,8 @@ class Bisenet3DBrain(nn.Module):
 		avg_pool_size_x = int(avg_pool_size_x)
 		avg_pool_size_y = int(avg_pool_size_y)
 		avg_pool_size_z = int(avg_pool_size_z)
+
+		self.pool_size = [avg_pool_size_x, avg_pool_size_y, avg_pool_size_z]
 
 		# Context Path
 		y = self.conv1_xception39(input)
@@ -235,6 +238,7 @@ class Bisenet3DBrain(nn.Module):
 		log(' level 3: 1 / 16 the size of xception39 after block4 is {}'.format(y.size()))
 		# level one 256 / 2 => 112, level two 112 / 2 => 56, level three 56 / 2 => 28
 		y_16 = F.adaptive_avg_pool3d(y, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
+		self.arm1_context_path.pool_size = self.pool_size
 		y_arm = self.arm1_context_path(y_16)
 		log(' the size of image feature after first y_arm is {}'.format(y_arm.size()))
 
@@ -263,6 +267,7 @@ class Bisenet3DBrain(nn.Module):
 		# Concatenate the image feature after context path : y_cat and the image feature after spatial path : sp
 		y_cat = torch.cat([y_cat, sp], dim=1)
 		log(' the size of image feature after the context path and spatial path is {}'.format(y_cat.size()))
+		self.FFM.pool_size = self.pool_size
 		y_cat = self.FFM(y_cat)
 		log(' the size of image feature after FFM is {}'.format(y_cat.size()))
 
