@@ -67,6 +67,8 @@ def train(args):
 			outputs = model(images)
 			if args.arch == 'bisenet3Dbrain':
 				loss = cross_entropy3d(outputs, labels)
+			elif args.arch == 'unet3d':
+				loss = cross_entropy3d(outputs, labels)
 			else:
 				loss = cross_entropy2d(outputs, labels)
 			loss.backward()

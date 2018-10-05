@@ -7,7 +7,7 @@ from ptsemseg.models.pspnet import *
 from ptsemseg.models.linknet import *
 from ptsemseg.models.gcnnet import *
 from ptsemseg.models.bisenet3Dbrain import Bisenet3DBrain
-
+from ptsemseg.models.unet3d_brain import unet3d
 
 # from ptsemseg.models.bisenet3D import *
 
@@ -54,6 +54,9 @@ def get_model(name, n_classes):
 	elif name == 'bisenet3Dbrain':
 		model = model(im_sz=[80, 120, 120])
 
+	elif name == 'unet3d':
+		model = model(feature_scale=4, n_classes=4, is_deconv=True, in_channels=4)
+
 	else:
 		raise 'Model {} not available'.format(name)
 
@@ -71,5 +74,6 @@ def _get_model_instance(name):
 		'linknet': linknet,
 		'gcnnet': GCN,
 		'bisenet3Dbrain': Bisenet3DBrain,
+		'unet3d': unet3d,
 		# 'bisenet3D': Bisenet3D,
 	}[name]

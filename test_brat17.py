@@ -12,12 +12,51 @@ from random import randint
 import argparse
 from torch.autograd import Variable
 
-DEBUG = False
+DEBUG = True
 
 
 def log(s):
 	if DEBUG:
 		print(s)
+
+
+def save_array_as_nifty_volume(data, filename, reference_name = None):
+    """
+    save a numpy array as nifty image
+    inputs:
+        data: a numpy array with shape [Depth, Height, Width]
+        filename: the ouput file name
+        reference_name: file name of the reference image of which affine and header are used
+    outputs: None
+    """
+    print(filename)
+    img = sitk.GetImageFromArray(data)
+    if(reference_name is not None):
+        img_ref = sitk.ReadImage(reference_name)
+        img.CopyInformation(img_ref)
+    sitk.WriteImage(img, filename)
+
+def set_ND_volume_roi_with_bounding_box_range(volume, bb_min, bb_max, sub_volume):
+	"""
+	set a subregion to an nd image.
+	"""
+	dim = len(bb_min)
+	out = volume
+	if (dim == 2):
+		out[np.ix_(range(bb_min[0], bb_max[0] + 1),
+				   range(bb_min[1], bb_max[1] + 1))] = sub_volume
+	elif (dim == 3):
+		out[np.ix_(range(bb_min[0], bb_max[0] + 1),
+				   range(bb_min[1], bb_max[1] + 1),
+				   range(bb_min[2], bb_max[2] + 1))] = sub_volume
+	elif (dim == 4):
+		out[np.ix_(range(bb_min[0], bb_max[0] + 1),
+				   range(bb_min[1], bb_max[1] + 1),
+				   range(bb_min[2], bb_max[2] + 1),
+				   range(bb_min[3], bb_max[3] + 1))] = sub_volume
+	else:
+		raise ValueError("array dimension should be 2, 3 or 4")
+	return out
 
 
 def load_3d_volume_as_array(filename):
@@ -77,8 +116,8 @@ def convert_label(in_volume, label_convert_source, label_convert_target):
 	out_volume[mask_volume > 0] = convert_volume[mask_volume > 0]
 	return out_volume
 
-def test_brats17(args):
 
+def test_brats17(args):
 	# The path of file containing the names of images required to be tested
 	test_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/brats17/config17/test_names_36.txt'
 
@@ -86,7 +125,7 @@ def test_brats17(args):
 	root_path = '/home/donghao/Desktop/donghao/brain_segmentation/brain_data_full'
 
 	# The path of the model
-	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_5.pkl'
+	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_995.pkl'
 
 	text_file = open(test_names_path, "r")
 
@@ -130,6 +169,7 @@ def test_brats17(args):
 	log('The shape of label map img is {}'.format(t2_img.shape))
 
 	img = np.stack((t1_img, t2_img, t1ce_img, flair_img))
+	input_im_sz = img.shape
 	log('The shape of img is {}'.format(img.shape))
 	img = np.expand_dims(img, axis=0)
 	log('The shape of img after dim expansion is {}'.format(img.shape))
@@ -138,17 +178,28 @@ def test_brats17(args):
 	img = torch.from_numpy(img).float()
 	log('The shape pf img is {}'.format(img.size()))
 	img_patch = img[:, :, 2:154, :, :]
-	img_patch = img[:, :, 2:122, 1:161, 1:161]
+	# img_patch = img[:, :, 2:122, 1:161, 1:161]
 
 	# Setup Model
 	model = torch.load(model_path)
-	print('The im_sz is ', model)
 	if torch.cuda.is_available():
 		model.cuda(0)
 		img = Variable(img_patch.cuda(0))
 	# print(model)
 	model.eval()
 	test_result = model(img)
+	print('test result size: {}'.format(test_result.size()))
+	pred = np.squeeze(test_result.data.cpu().numpy(), axis=0)
+	log('The shape of pred after squeeze is {}'.format(pred.shape))
+	pred = np.argmax(pred, axis=0)
+	print('The value of pred is ', np.unique(pred))
+	log('The shape of pred is {}'.format(pred.shape))
+	temp_size = input_im_sz
+	final_label = np.zeros([temp_size[1], temp_size[2], temp_size[3]], np.int16)
+	final_label[2:154, :, :] = pred
+	save_array_as_nifty_volume(final_label, "/home/donghao/Desktop/donghao/test.nii.gz")
+	# print('The test_result is ', test_result.size())
+
 
 
 if __name__ == '__main__':
