@@ -7,8 +7,8 @@ DEBUG = False
 
 
 def log(s):
-    if DEBUG:
-        print(s)
+	if DEBUG:
+		print(s)
 
 
 class SeparableConv3d(nn.Module):
