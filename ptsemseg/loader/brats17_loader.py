@@ -29,7 +29,7 @@ import random
 from scipy import ndimage
 import SimpleITK as sitk
 
-DEBUG = True
+DEBUG = False
 
 
 def log(s):
@@ -390,9 +390,10 @@ class Brats17Loader(data.Dataset):
 		# segmentation label
 		lbl_path = img_path + '_seg.nii.gz'
 		lbl = load_nifty_volume_as_array(filename=lbl_path, with_header=False)
+		lbl = np.array(lbl, dtype=np.int32)
 		log(lbl_path)
 		log('The shape of label map img is {}'.format(t2_img.shape))
-
+		log('The unique values of lbl_patch {}'.format(np.unique(lbl)))
 		########### Previous data loading: Begin
 		img = np.stack((t1_img, t2_img, t1ce_img, flair_img))
 		patch_size = [80, 80, 80]
@@ -408,7 +409,7 @@ class Brats17Loader(data.Dataset):
 		img = img[:, x_start:x_end, y_start:y_end, z_start:z_end]
 		log('The shape of image after stacking is : {}'.format(img.shape))
 		img = np.asarray(img)
-		img = np.array(img, dtype=np.uint8)
+		# img = np.array(img, dtype=np.uint8)
 		lbl = np.array(lbl, dtype=np.int32)
 		lbl = convert_label(lbl, [0, 1, 2, 4], [0, 1, 2, 3])
 		log('The shape of label is : {}'.format(lbl.shape))
@@ -425,10 +426,12 @@ class Brats17Loader(data.Dataset):
 		# transform is disabled for now
 		if self.is_transform:
 			img, lbl = self.transform(img, lbl)
-
+		log('The maximum value of img is {}'.format(np.max(img)))
+		log('The unique values of lbl_patch {}'.format(np.unique(lbl)))
 		# convert numpy type into torch type
 		img = torch.from_numpy(img).float()
 		lbl = torch.from_numpy(lbl).long()
+
 		########### Previous data loading: End
 
 		########### Brats17 official data loading: Begin
@@ -450,7 +453,7 @@ class Brats17Loader(data.Dataset):
 		# log('batch_sample_model is {}'.format(batch_sample_model[0]))
 		# boundingbox = None
 		# center_point = get_random_roi_sampling_center(volume_shape, sub_label_shape, batch_sample_model, boundingbox)
-		#
+		# log('The center point is {}'.format(center_point))
 		# # Step Three
 		# lbl_patch = extract_roi_from_volume(lbl_crop, center_point, sub_label_shape)
 		# t1_patch = extract_roi_from_volume(t1_crop, center_point, sub_label_shape)
@@ -462,6 +465,8 @@ class Brats17Loader(data.Dataset):
 		# # Step Four
 		# lbl_patch = convert_label(in_volume=lbl_patch, label_convert_source=[0, 1, 2, 4],
 		# 							label_convert_target=[0, 1, 2, 3])
+		# log('The maximum value of img is {}'.format(np.max(img_patch)))
+		# log('The unique values of lbl_patch {}'.format(np.unique(lbl_patch)))
 		# img_patch = np.array(img_patch, dtype=np.uint8)
 		# lbl_patch = np.array(lbl_patch, dtype=np.int32)
 		# img_patch = torch.from_numpy(img_patch).float()
