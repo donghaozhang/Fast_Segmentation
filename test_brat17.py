@@ -12,7 +12,7 @@ from random import randint
 import argparse
 from torch.autograd import Variable
 
-DEBUG = False
+DEBUG = True
 
 
 def log(s):
@@ -125,11 +125,13 @@ def test_brats17(args):
 	root_path = '/home/donghao/Desktop/donghao/brain_segmentation/brain_data_full'
 
 	# The path of the model
-	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_995.pkl'
-
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_140.pkl'
+	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/unet3d_brats17_loader_1_1000.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_255.pkl'
 	text_file = open(test_names_path, "r")
 
 	lines = text_file.readlines()
+	print('The number of images is ', )
 	img_num = np.random.randint(0, 33)
 	log('The current image number is {}'.format(img_num))
 	cur_im_name = lines[img_num]
@@ -177,17 +179,17 @@ def test_brats17(args):
 	# convert numpy type into torch type
 	img = torch.from_numpy(img).float()
 	log('The shape pf img is {}'.format(img.size()))
-	img_patch = img[:, :, 2:154, :, :]
+	img_patch = img[:, :, 2:154, 90:154, 90:154]
 	# img_patch = img[:, :, 2:122, 1:161, 1:161]
 
 	# Setup Model
 	model = torch.load(model_path)
 	if torch.cuda.is_available():
 		model.cuda(0)
-		img = Variable(img_patch.cuda(0))
+		img_patch = Variable(img_patch.cuda(0))
 	# print(model)
 	model.eval()
-	test_result = model(img)
+	test_result = model(img_patch)
 	log('test result size: {}'.format(test_result.size()))
 	pred = np.squeeze(test_result.data.cpu().numpy(), axis=0)
 	log('The shape of pred after squeeze is {}'.format(pred.shape))
@@ -196,9 +198,96 @@ def test_brats17(args):
 	log('The shape of pred is {}'.format(pred.shape))
 	temp_size = input_im_sz
 	final_label = np.zeros([temp_size[1], temp_size[2], temp_size[3]], np.int16)
-	final_label[2:154, :, :] = pred
-	save_array_as_nifty_volume(final_label, "/home/donghao/Desktop/donghao/test.nii.gz")
+	#final_label[2:154, 90:154, 90:154] = pred
+
 	# print('The test_result is ', test_result.size())
+
+	log('apply 160*160*8 network to the img')
+	shapeX = temp_size[1]
+	shapeY = temp_size[2]
+	shapeZ = temp_size[3]
+	patch_size = [64, 64, 64]
+	stack_alongX = None
+	stack_alongY = None
+	stack_alongZ = None
+	overlapX = 0
+	overlapY = 0
+	overlapZ = 0
+	x = 0
+	y = 0
+	z = 0
+	while x < shapeX:
+
+		# residual
+		if x + patch_size[0] > shapeX:
+			overlapX = x - (shapeX - patch_size[0])
+			x = shapeX - patch_size[0]
+
+		y = 0
+		while y < shapeY:
+			# residual
+			if y + patch_size[1] > shapeY:
+				overlapY = y - (shapeY - patch_size[1])
+				y = shapeY - patch_size[1]
+			# log('overlapY: {}'.format(overlapY))
+
+			z = 0
+			while z < shapeZ:
+				# residual check
+				if z + patch_size[2] > shapeZ:
+					overlapZ = z - (shapeZ - patch_size[2])
+					z = shapeZ - patch_size[2]
+
+				# log('overlapZ: {}'.format(overlapZ))
+				img_patch = img[:, :, x:x + patch_size[0], y:y + patch_size[1], z:z + patch_size[2]]
+				img_patch = Variable(img_patch.cuda(0))
+				# print('patch tensor size: {}'.format(patch.size()))
+				pred = model(img_patch)
+				pred = np.squeeze(pred.data.cpu().numpy(), axis=0)
+				pred = np.argmax(pred, axis=0)
+				final_label[x:x + patch_size[0], y:y + patch_size[1], z:z + patch_size[2]] = pred
+
+				if overlapZ:
+					pred = pred[:, :, overlapZ:]
+					stack_alongZ = np.concatenate((stack_alongZ, pred), axis=2)
+					overlapZ = 0
+				else:
+					if stack_alongZ is None:
+						stack_alongZ = pred
+					else:
+						stack_alongZ = np.concatenate((stack_alongZ, pred), axis=2)
+				# log('===>z ({}/{}) loop: stack_alongZ shape: {}'.format(z, shapeZ, stack_alongZ.shape))
+				z += patch_size[2]
+
+			if overlapY:
+				stack_alongZ = stack_alongZ[:, overlapY:, :]
+				stack_alongY = np.concatenate((stack_alongY, stack_alongZ), axis=1)
+				overlapY = 0
+			else:
+				if stack_alongY is None:
+					stack_alongY = stack_alongZ
+				else:
+					stack_alongY = np.concatenate((stack_alongY, stack_alongZ), axis=1)
+			# log('==>y ({}/{}) loop: stack_alongY shape: {}'.format(y, shapeY, stack_alongY.shape))
+			stack_alongZ = None
+			y += patch_size[1]
+
+		if overlapX:
+			stack_alongY = stack_alongY[overlapX:, :, :]
+			stack_alongX = np.concatenate((stack_alongX, stack_alongY), axis=0)
+			overlapX = 0
+		else:
+			if stack_alongX is None:
+				stack_alongX = stack_alongY
+			else:
+				stack_alongX = np.concatenate((stack_alongX, stack_alongY), axis=0)
+		# log('=>x ({}/{}) loop: stack_alongX shape: {}'.format(x, shapeX, stack_alongX.shape))
+		stack_alongY = None
+		x += patch_size[0]
+
+	save_array_as_nifty_volume(final_label, "/home/donghao/Desktop/donghao/test.nii.gz")
+
+
 
 
 
