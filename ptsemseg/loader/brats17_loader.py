@@ -12,12 +12,195 @@ from random import randint
 
 from torch.utils import data
 
-DEBUG = False
+# -*- coding: utf-8 -*-
+# Implementation of Wang et al 2017: Automatic Brain Tumor Segmentation using Cascaded Anisotropic Convolutional Neural Networks. https://arxiv.org/abs/1709.00382
+
+# Author: Guotai Wang
+# Copyright (c) 2017-2018 University College London, United Kingdom. All rights reserved.
+# http://cmictig.cs.ucl.ac.uk
+#
+# Distributed under the BSD-3 licence. Please see the file licence.txt
+# This software is not certified for clinical use.
+#
+import os
+import nibabel
+import numpy as np
+import random
+from scipy import ndimage
+import SimpleITK as sitk
+
+DEBUG = True
 
 
 def log(s):
 	if DEBUG:
 		print(s)
+
+
+def search_file_in_folder_list(folder_list, file_name):
+	"""
+	Find the full filename from a list of folders
+	inputs:
+		folder_list: a list of folders
+		file_name:  filename
+	outputs:
+		full_file_name: the full filename
+	"""
+	file_exist = False
+	for folder in folder_list:
+		full_file_name = os.path.join(folder, file_name)
+		if (os.path.isfile(full_file_name)):
+			file_exist = True
+			break
+	if (file_exist == False):
+		raise ValueError('{0:} is not found in {1:}'.format(file_name, folder))
+	return full_file_name
+
+
+def load_3d_volume_as_array(filename):
+	if ('.nii' in filename):
+		return load_nifty_volume_as_array(filename)
+	elif ('.mha' in filename):
+		return load_mha_volume_as_array(filename)
+	raise ValueError('{0:} unspported file format'.format(filename))
+
+
+def load_mha_volume_as_array(filename):
+	img = sitk.ReadImage(filename)
+	nda = sitk.GetArrayFromImage(img)
+	return nda
+
+
+def load_nifty_volume_as_array(filename, with_header=False):
+	"""
+	load nifty image into numpy array, and transpose it based on the [z,y,x] axis order
+	The output array shape is like [Depth, Height, Width]
+	inputs:
+		filename: the input file name, should be *.nii or *.nii.gz
+		with_header: return affine and hearder infomation
+	outputs:
+		data: a numpy data array
+	"""
+	log(filename)
+	img = nibabel.load(filename)
+	data = img.get_data()
+	data = np.transpose(data, [2, 1, 0])
+	if (with_header):
+		return data, img.affine, img.header
+	else:
+		return data
+
+
+def save_array_as_nifty_volume(data, filename, reference_name=None):
+	"""
+	save a numpy array as nifty image
+	inputs:
+		data: a numpy array with shape [Depth, Height, Width]
+		filename: the ouput file name
+		reference_name: file name of the reference image of which affine and header are used
+	outputs: None
+	"""
+	log(filename)
+	img = sitk.GetImageFromArray(data)
+	if (reference_name is not None):
+		img_ref = sitk.ReadImage(reference_name)
+		img.CopyInformation(img_ref)
+	sitk.WriteImage(img, filename)
+
+
+def itensity_normalize_one_volume(volume):
+	"""
+	normalize the itensity of an nd volume based on the mean and std of nonzeor region
+	inputs:
+		volume: the input nd volume
+	outputs:
+		out: the normalized nd volume
+	"""
+
+	pixels = volume[volume > 0]
+	mean = pixels.mean()
+	std = pixels.std()
+	out = (volume - mean) / std
+	out_random = np.random.normal(0, 1, size=volume.shape)
+	out[volume == 0] = out_random[volume == 0]
+	return out
+
+
+def get_ND_bounding_box(label, margin):
+	"""
+	get the bounding box of the non-zero region of an ND volume
+	"""
+	# print('the value of margin is ', margin)
+	input_shape = label.shape
+	if (type(margin) is int):
+		margin = [margin] * len(input_shape)
+	assert (len(input_shape) == len(margin))
+	indxes = np.nonzero(label)
+	idx_min = []
+	idx_max = []
+	for i in range(len(input_shape)):
+		idx_min.append(indxes[i].min())
+		idx_max.append(indxes[i].max())
+	# print('idx_min: ', idx_min, 'idx_max: ', idx_max)
+
+	for i in range(len(input_shape)):
+		idx_min[i] = max(idx_min[i] - margin[i], 0)
+		idx_max[i] = min(idx_max[i] + margin[i], input_shape[i] - 1)
+	# print('idx_min', idx_min, 'idx_max', idx_max)
+	return idx_min, idx_max
+
+
+def crop_ND_volume_with_bounding_box(volume, min_idx, max_idx):
+	"""
+	crop/extract a subregion form an nd image.
+	"""
+	dim = len(volume.shape)
+	assert (dim >= 2 and dim <= 5)
+	if (dim == 2):
+		output = volume[np.ix_(range(min_idx[0], max_idx[0] + 1),
+							   range(min_idx[1], max_idx[1] + 1))]
+	elif (dim == 3):
+		output = volume[np.ix_(range(min_idx[0], max_idx[0] + 1),
+							   range(min_idx[1], max_idx[1] + 1),
+							   range(min_idx[2], max_idx[2] + 1))]
+	elif (dim == 4):
+		output = volume[np.ix_(range(min_idx[0], max_idx[0] + 1),
+							   range(min_idx[1], max_idx[1] + 1),
+							   range(min_idx[2], max_idx[2] + 1),
+							   range(min_idx[3], max_idx[3] + 1))]
+	elif (dim == 5):
+		output = volume[np.ix_(range(min_idx[0], max_idx[0] + 1),
+							   range(min_idx[1], max_idx[1] + 1),
+							   range(min_idx[2], max_idx[2] + 1),
+							   range(min_idx[3], max_idx[3] + 1),
+							   range(min_idx[4], max_idx[4] + 1))]
+	else:
+		raise ValueError("the dimension number shoud be 2 to 5")
+	return output
+
+
+def get_ND_bounding_box(label, margin):
+	"""
+	get the bounding box of the non-zero region of an ND volume
+	"""
+	# print('the value of margin is ', margin)
+	input_shape = label.shape
+	if (type(margin) is int):
+		margin = [margin] * len(input_shape)
+	assert (len(input_shape) == len(margin))
+	indxes = np.nonzero(label)
+	idx_min = []
+	idx_max = []
+	for i in range(len(input_shape)):
+		idx_min.append(indxes[i].min())
+		idx_max.append(indxes[i].max())
+	# print('idx_min: ', idx_min, 'idx_max: ', idx_max)
+
+	for i in range(len(input_shape)):
+		idx_min[i] = max(idx_min[i] - margin[i], 0)
+		idx_max[i] = min(idx_max[i] + margin[i], input_shape[i] - 1)
+	# print('idx_min', idx_min, 'idx_max', idx_max)
+	return idx_min, idx_max
 
 
 def load_3d_volume_as_array(filename):
@@ -78,6 +261,78 @@ def convert_label(in_volume, label_convert_source, label_convert_target):
 	return out_volume
 
 
+def get_random_roi_sampling_center(input_shape, output_shape, sample_mode, bounding_box=None):
+	"""
+	get a random coordinate representing the center of a roi for sampling
+	inputs:
+		input_shape: the shape of sampled volume
+		output_shape: the desired roi shape
+		sample_mode: 'valid': the entire roi should be inside the input volume
+					 'full': only the roi centre should be inside the input volume
+		bounding_box: the bounding box which the roi center should be limited to
+	outputs:
+		center: the output center coordinate of a roi
+	"""
+	center = []
+	for i in range(len(input_shape)):
+		if (sample_mode[i] == 'full'):
+			if (bounding_box):
+				x0 = bounding_box[i * 2];
+				x1 = bounding_box[i * 2 + 1]
+			else:
+				x0 = 0;
+				x1 = input_shape[i]
+		else:
+			if (bounding_box):
+				x0 = bounding_box[i * 2] + int(output_shape[i] / 2)
+				x1 = bounding_box[i * 2 + 1] - int(output_shape[i] / 2)
+			else:
+				x0 = int(output_shape[i] / 2)
+				x1 = input_shape[i] - x0
+		if (x1 <= x0):
+			centeri = int((x0 + x1) / 2)
+		else:
+			centeri = random.randint(x0, x1)
+		center.append(centeri)
+	return center
+
+
+def extract_roi_from_volume(volume, in_center, output_shape, fill='random'):
+	"""
+	extract a roi from a 3d volume
+	inputs:
+		volume: the input 3D volume
+		in_center: the center of the roi
+		output_shape: the size of the roi
+		fill: 'random' or 'zero', the mode to fill roi region where is outside of the input volume
+	outputs:
+		output: the roi volume
+	"""
+	input_shape = volume.shape
+	if (fill == 'random'):
+		output = np.random.normal(0, 1, size=output_shape)
+	else:
+		output = np.zeros(output_shape)
+	# print('the output_shape is ', output_shape)
+	r0max = [int(x / 2) for x in output_shape]
+	# print('r0max: ', r0max)
+	r1max = [output_shape[i] - r0max[i] for i in range(len(r0max))]
+	# print('r1max: ', r1max)
+	r0 = [min(r0max[i], in_center[i]) for i in range(len(r0max))]
+	# print('r0: ', r0)
+	r1 = [min(r1max[i], input_shape[i] - in_center[i]) for i in range(len(r0max))]
+	# print('r1: ', r1)
+	out_center = r0max
+
+	output[np.ix_(range(out_center[0] - r0[0], out_center[0] + r1[0]),
+				  range(out_center[1] - r0[1], out_center[1] + r1[1]),
+				  range(out_center[2] - r0[2], out_center[2] + r1[2]))] = \
+		volume[np.ix_(range(in_center[0] - r0[0], in_center[0] + r1[0]),
+					  range(in_center[1] - r0[1], in_center[1] + r1[1]),
+					  range(in_center[2] - r0[2], in_center[2] + r1[2]))]
+	return output
+
+
 class Brats17Loader(data.Dataset):
 	def __init__(self, root, split="train", is_transform=False, img_size=None):
 		self.root = root
@@ -87,18 +342,22 @@ class Brats17Loader(data.Dataset):
 		self.mean = np.array([104.00699, 116.66877, 122.67892])
 		self.n_classes = 2
 		self.files = collections.defaultdict(list)
+		self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_66.txt'
+		self.text_file = open(self.train_names_path, "r")
+		self.lines = self.text_file.readlines()
+		log('The length lines is {}'.format(len(self.lines)))
 
 	def __len__(self):
-		return 66
+		return len(self.lines)
 
 	def __getitem__(self, index):
-		train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_66.txt'
-		text_file = open(train_names_path, "r")
-		lines = text_file.readlines()
+		# train_names_path =
+		# text_file = open(train_names_path, "r")
+
 		img_name = self.files[index]
-		img_num = np.random.randint(0, 66)
+		img_num = np.random.randint(0, len(self.lines))
 		log('The current image number is {}'.format(img_num))
-		cur_im_name = lines[img_num]
+		cur_im_name = self.lines[img_num]
 		cur_im_name = cur_im_name.replace("\n", "")
 		# print('I am so confused', os.path.basename(cur_im_name))
 		# print('the name after splitting is ', cur_im_name.split("|\")[0])
@@ -134,8 +393,9 @@ class Brats17Loader(data.Dataset):
 		log(lbl_path)
 		log('The shape of label map img is {}'.format(t2_img.shape))
 
+		########### Previous data loading: Begin
 		img = np.stack((t1_img, t2_img, t1ce_img, flair_img))
-		patch_size = [80, 120, 120]
+		patch_size = [80, 80, 80]
 		log('the patch_size is {} {} {}'.format(patch_size[0], patch_size[1], patch_size[2]))
 		x_start = randint(0, img.shape[1] - patch_size[0])
 		x_end = x_start + patch_size[0]
@@ -153,12 +413,15 @@ class Brats17Loader(data.Dataset):
 		lbl = convert_label(lbl, [0, 1, 2, 4], [0, 1, 2, 3])
 		log('The shape of label is : {}'.format(lbl.shape))
 		lbl = lbl[x_start:x_end, y_start:y_end, z_start:z_end]
-		# img (4, 155, 240, 240)
-		# label (155, 240, 240)
+
+		##img (4, 155, 240, 240)
+		##label (155, 240, 240)
 
 		log('The maximum value of img is {}'.format(np.max(img)))
 		log('The unique values of label {}'.format(np.unique(lbl)))
 		log('!!!!!!! I should convert labels of [0 1 2 4] into [0, 1, 2, 3]!!!!!')
+		lbl = convert_label(in_volume=lbl, label_convert_source=[0, 1, 2, 4],
+									label_convert_target=[0, 1, 2, 3])
 		# transform is disabled for now
 		if self.is_transform:
 			img, lbl = self.transform(img, lbl)
@@ -166,6 +429,49 @@ class Brats17Loader(data.Dataset):
 		# convert numpy type into torch type
 		img = torch.from_numpy(img).float()
 		lbl = torch.from_numpy(lbl).long()
+		########### Previous data loading: End
+
+		########### Brats17 official data loading: Begin
+		# Step One
+		# margin = 5
+		# log('The shape of lbl is {}'.format(lbl.shape))
+		# bbmin, bbmax = get_ND_bounding_box(flair_img, margin)
+		# log('bbmin is {} and bbmax is {}'.format(bbmin, bbmax))
+		# lbl_crop = crop_ND_volume_with_bounding_box(lbl, bbmin, bbmax)
+		# t1_crop = crop_ND_volume_with_bounding_box(t1_img, bbmin, bbmax)
+		# t1ce_crop = crop_ND_volume_with_bounding_box(t1ce_img, bbmin, bbmax)
+		# t2_crop = crop_ND_volume_with_bounding_box(t2_img, bbmin, bbmax)
+		# flair_crop = crop_ND_volume_with_bounding_box(flair_img, bbmin, bbmax)
+		# log('The image size after crop_ND_volume_with_bounding_box is {}'.format(lbl_crop.shape))
+		# # Step Two
+		# volume_shape = lbl_crop.shape
+		# sub_label_shape = [80, 80, 80]
+		# batch_sample_model = ('full', 'valid', 'valid')
+		# log('batch_sample_model is {}'.format(batch_sample_model[0]))
+		# boundingbox = None
+		# center_point = get_random_roi_sampling_center(volume_shape, sub_label_shape, batch_sample_model, boundingbox)
+		#
+		# # Step Three
+		# lbl_patch = extract_roi_from_volume(lbl_crop, center_point, sub_label_shape)
+		# t1_patch = extract_roi_from_volume(t1_crop, center_point, sub_label_shape)
+		# t1ce_patch = extract_roi_from_volume(t1ce_crop, center_point, sub_label_shape)
+		# t2_patch = extract_roi_from_volume(t2_crop, center_point, sub_label_shape)
+		# flair_patch = extract_roi_from_volume(flair_crop, center_point, sub_label_shape)
+		# img_patch = np.stack((t1_patch, t1ce_patch, t2_patch, flair_patch))
+		#
+		# # Step Four
+		# lbl_patch = convert_label(in_volume=lbl_patch, label_convert_source=[0, 1, 2, 4],
+		# 							label_convert_target=[0, 1, 2, 3])
+		# img_patch = np.array(img_patch, dtype=np.uint8)
+		# lbl_patch = np.array(lbl_patch, dtype=np.int32)
+		# img_patch = torch.from_numpy(img_patch).float()
+		# lbl_patch = torch.from_numpy(lbl_patch).long()
+		# log('The size of lbl_patch is {}'.format(lbl_patch.shape))
+		# log('The size of img_patch is {}'.format(img_patch.shape))
+		########### Brats17 official data loading: End
+
+		#return img_patch, lbl_patch
+
 		return img, lbl
 
 	def transform(self, img, lbl):

@@ -12,7 +12,7 @@ from random import randint
 import argparse
 from torch.autograd import Variable
 
-DEBUG = True
+DEBUG = False
 
 
 def log(s):
@@ -29,7 +29,7 @@ def save_array_as_nifty_volume(data, filename, reference_name = None):
         reference_name: file name of the reference image of which affine and header are used
     outputs: None
     """
-    print(filename)
+    log(filename)
     img = sitk.GetImageFromArray(data)
     if(reference_name is not None):
         img_ref = sitk.ReadImage(reference_name)
@@ -188,11 +188,11 @@ def test_brats17(args):
 	# print(model)
 	model.eval()
 	test_result = model(img)
-	print('test result size: {}'.format(test_result.size()))
+	log('test result size: {}'.format(test_result.size()))
 	pred = np.squeeze(test_result.data.cpu().numpy(), axis=0)
 	log('The shape of pred after squeeze is {}'.format(pred.shape))
 	pred = np.argmax(pred, axis=0)
-	print('The value of pred is ', np.unique(pred))
+	log('The value of pred is '.format(np.unique(pred)))
 	log('The shape of pred is {}'.format(pred.shape))
 	temp_size = input_im_sz
 	final_label = np.zeros([temp_size[1], temp_size[2], temp_size[3]], np.int16)

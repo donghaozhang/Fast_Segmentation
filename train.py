@@ -15,9 +15,8 @@ from ptsemseg.loader import get_loader, get_data_path
 from ptsemseg.loss import cross_entropy2d, cross_entropy3d
 from ptsemseg.metrics import scores
 from lr_scheduling import *
-
-
 # from tensorboardX import SummaryWriter
+
 
 def train(args):
 	# Setup Dataloader
