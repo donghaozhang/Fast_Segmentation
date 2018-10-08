@@ -55,7 +55,7 @@ def train(args):
 
 	log('The optimizer is Adam')
 	log('The learning rate is {}'.format(args.l_rate))
-	# optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
+	optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
 	# optimizer = torch.optim.SGD(model.parameters(), lr=1e-1, momentum=0.99)
 	# optimizer = torch.optim.Adam(model.parameters(), lr=args.l_rate)
 
