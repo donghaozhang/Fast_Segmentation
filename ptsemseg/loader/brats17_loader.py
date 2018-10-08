@@ -342,7 +342,8 @@ class Brats17Loader(data.Dataset):
 		self.mean = np.array([104.00699, 116.66877, 122.67892])
 		self.n_classes = 2
 		self.files = collections.defaultdict(list)
-		self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_66.txt'
+		# self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_66.txt'
+		self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/brats17/config17/train_names_all.txt'
 		self.text_file = open(self.train_names_path, "r")
 		self.lines = self.text_file.readlines()
 		log('The length lines is {}'.format(len(self.lines)))
@@ -389,6 +390,7 @@ class Brats17Loader(data.Dataset):
 
 		# segmentation label
 		lbl_path = img_path + '_seg.nii.gz'
+		# print('The lbl path is {}'.format(lbl_path))
 		lbl = load_nifty_volume_as_array(filename=lbl_path, with_header=False)
 		lbl = np.array(lbl, dtype=np.int32)
 		log(lbl_path)
@@ -458,6 +460,7 @@ class Brats17Loader(data.Dataset):
 		boundingbox = None
 		center_point = get_random_roi_sampling_center(volume_shape, sub_label_shape, batch_sample_model, boundingbox)
 		log('The center point is {}'.format(center_point))
+		# print('The centerpoint is ', center_point)
 
 		# Step Three
 		lbl_patch = extract_roi_from_volume(lbl_crop, center_point, sub_label_shape, 'zero')

@@ -6,17 +6,24 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 
+
 from torch.autograd import Variable
 from torch.utils import data
 
 # get_model is defined in the __init__.py file
 from ptsemseg.models import get_model
 from ptsemseg.loader import get_loader, get_data_path
-from ptsemseg.loss import cross_entropy2d, cross_entropy3d
+from ptsemseg.loss import cross_entropy2d, cross_entropy3d, FocalCrossEntropyLoss3d, FocalCrossEntropyLoss2d, DiceLoss
 from ptsemseg.metrics import scores
 from lr_scheduling import *
 # from tensorboardX import SummaryWriter
 
+DEBUG = False
+
+
+def log(s):
+	if DEBUG:
+		print(s)
 
 def train(args):
 	# Setup Dataloader
@@ -46,7 +53,11 @@ def train(args):
 		test_image, test_segmap = loader[0]
 		test_image = Variable(test_image.unsqueeze(0))
 
-	optimizer = torch.optim.Adam(model.parameters(), lr=args.l_rate * 100)
+	log('The optimizer is Adam')
+	log('The learning rate is {}'.format(args.l_rate))
+	# optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
+	# optimizer = torch.optim.SGD(model.parameters(), lr=1e-1, momentum=0.99)
+	# optimizer = torch.optim.Adam(model.parameters(), lr=args.l_rate)
 
 	# Train Model
 	print('###### Step Three: Training Model')
@@ -63,13 +74,23 @@ def train(args):
 				labels = Variable(labels)
 
 			optimizer.zero_grad()
+			log('The maximum value of input image is {}'.format(images.max()))
 			outputs = model(images)
 			if args.arch == 'bisenet3Dbrain':
 				loss = cross_entropy3d(outputs, labels)
 			elif args.arch == 'unet3d':
+				# criterion = DiceLoss()
+				# loss = criterion(outputs, labels)
+				log('The unique value of labels are {}'.format(np.unique(labels)))
+				log('The maximum of outputs are {}'.format(outputs.max()))
+				log('The size of output is {}'.format(outputs.size()))
+				log('The size of labels is {}'.format(labels.size()))
 				loss = cross_entropy3d(outputs, labels)
+				#criterion = FocalCrossEntropyLoss3d()
+				#loss = criterion(outputs, labels)
 			else:
 				loss = cross_entropy2d(outputs, labels)
+
 			loss.backward()
 			optimizer.step()
 			loss_sum = loss_sum + torch.Tensor([loss.data]).unsqueeze(0).cpu()
@@ -102,7 +123,7 @@ if __name__ == '__main__':
 						help='# of the epochs')
 	parser.add_argument('--batch_size', nargs='?', type=int, default=1,
 						help='Batch Size')
-	parser.add_argument('--l_rate', nargs='?', type=float, default=1e-4,
+	parser.add_argument('--l_rate', nargs='?', type=float, default=1e-5,
 						help='Learning Rate')
 	parser.add_argument('--feature_scale', nargs='?', type=int, default=1,
 						help='Divider for # of features to use')
