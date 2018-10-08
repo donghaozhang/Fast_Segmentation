@@ -111,32 +111,36 @@ class UNet(nn.Module):
 		return x
 
 
-class DiceCoeff(Function):
+class DiceCoeff(nn.Module):
 	"""Dice coeff for individual examples"""
 
+	def __init__(self):
+		super(DiceCoeff, self).__init__()
+
 	def forward(self, input, target):
-		self.save_for_backward(input, target)
+		#self.save_for_backward(input, target)
 		eps = 0.0001
 		self.inter = torch.dot(input.view(-1), target.view(-1))
 		self.union = torch.sum(input) + torch.sum(target) + eps
 
 		t = (2 * self.inter.float() + eps) / self.union.float()
+		print(t)
 		return t
 
 	# This function has only a single output, so it gets only one gradient
-	def backward(self, grad_output):
-		print('has this being called')
-
-		input, target = self.saved_variables
-		grad_input = grad_target = None
-
-		if self.needs_input_grad[0]:
-			grad_input = grad_output * 2 * (target * self.union + self.inter) \
-						 / self.union * self.union
-		if self.needs_input_grad[1]:
-			grad_target = None
-
-		return grad_input, grad_target
+	# def backward(self, grad_output):
+	# 	print('has this being called')
+	#
+	# 	input, target = self.saved_variables
+	# 	grad_input = grad_target = None
+	#
+	# 	if self.needs_input_grad[0]:
+	# 		grad_input = grad_output * 2 * (target * self.union + self.inter) \
+	# 					 / self.union * self.union
+	# 	if self.needs_input_grad[1]:
+	# 		grad_target = None
+	#
+	# 	return grad_input, grad_target
 
 
 def dice_coeff(input, target):
@@ -176,9 +180,13 @@ masks_probs_flat = masks_probs.view(-1)
 true_masks_flat = true_masks.view(-1)
 criterion = DiceCoeff()
 print('The requires_grad attribute is ', true_masks_flat.requires_grad)
-loss = criterion(true_masks_flat, true_masks_flat)
-loss = Variable(loss.data)
-optimizer.zero_grad()
+true_masks_flat.requires_grad = False
+true_masks_flat = Variable(true_masks_flat)
 torch_tensor_learn = torch.zeros((1, 256, 256), requires_grad=True)
+torch_tensor_learn = Variable(torch_tensor_learn)
+torch_tensor_learn = torch_tensor_learn.cuda()
+loss = criterion(true_masks_flat, torch_tensor_learn)
+#loss = Variable(loss.data)
+optimizer.zero_grad()
 print('The size of torch_tensor_learn is {}'.format(torch_tensor_learn.size()))
 loss.backward()
