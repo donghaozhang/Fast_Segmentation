@@ -134,7 +134,10 @@ def get_ND_bounding_box(label, margin):
 	input_shape = label.shape
 	if (type(margin) is int):
 		margin = [margin] * len(input_shape)
-	assert (len(input_shape) == len(margin))
+	log('The length of input_shape is {}'.format(margin))
+	log('The length of margin is {}'.format(margin))
+	# assert (len(input_shape) == len(margin))
+
 	indxes = np.nonzero(label)
 	idx_min = []
 	idx_max = []
@@ -177,30 +180,6 @@ def crop_ND_volume_with_bounding_box(volume, min_idx, max_idx):
 	else:
 		raise ValueError("the dimension number shoud be 2 to 5")
 	return output
-
-
-def get_ND_bounding_box(label, margin):
-	"""
-	get the bounding box of the non-zero region of an ND volume
-	"""
-	# print('the value of margin is ', margin)
-	input_shape = label.shape
-	if (type(margin) is int):
-		margin = [margin] * len(input_shape)
-	assert (len(input_shape) == len(margin))
-	indxes = np.nonzero(label)
-	idx_min = []
-	idx_max = []
-	for i in range(len(input_shape)):
-		idx_min.append(indxes[i].min())
-		idx_max.append(indxes[i].max())
-	# print('idx_min: ', idx_min, 'idx_max: ', idx_max)
-
-	for i in range(len(input_shape)):
-		idx_min[i] = max(idx_min[i] - margin[i], 0)
-		idx_max[i] = min(idx_max[i] + margin[i], input_shape[i] - 1)
-	# print('idx_min', idx_min, 'idx_max', idx_max)
-	return idx_min, idx_max
 
 
 def load_3d_volume_as_array(filename):
@@ -342,8 +321,8 @@ class Brats17Loader(data.Dataset):
 		self.mean = np.array([104.00699, 116.66877, 122.67892])
 		self.n_classes = 2
 		self.files = collections.defaultdict(list)
-		# self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_66.txt'
-		self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/brats17/config17/train_names_all.txt'
+		self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_66.txt'
+		# self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/brats17/config17/train_names_all.txt'
 		self.text_file = open(self.train_names_path, "r")
 		self.lines = self.text_file.readlines()
 		log('The length lines is {}'.format(len(self.lines)))
@@ -397,97 +376,114 @@ class Brats17Loader(data.Dataset):
 		log('The shape of label map img is {}'.format(t2_img.shape))
 		log('The unique values of lbl_patch {}'.format(np.unique(lbl)))
 		########### Previous data loading: Begin
-		# img = np.stack((t1_img, t2_img, t1ce_img, flair_img))
-		# patch_size = [80, 80, 80]
-		# log('the patch_size is {} {} {}'.format(patch_size[0], patch_size[1], patch_size[2]))
-		# x_start = randint(0, img.shape[1] - patch_size[0])
-		# x_end = x_start + patch_size[0]
-		# y_start = randint(0, img.shape[2] - patch_size[1])
-		# y_end = y_start + patch_size[1]
-		# z_start = randint(0, img.shape[3] - patch_size[2])
-		# z_end = z_start + patch_size[2]
-		# log('x_start is {} x_end is {}'.format(x_start, x_end))
-		# log('The shape of image after stacking is : {}'.format(img.shape))
-		# img = img[:, x_start:x_end, y_start:y_end, z_start:z_end]
-		# log('The shape of image after stacking is : {}'.format(img.shape))
-		# img = np.asarray(img)
-		# # img = np.array(img, dtype=np.uint8)
-		# lbl = np.array(lbl, dtype=np.int32)
-		# lbl = convert_label(lbl, [0, 1, 2, 4], [0, 1, 2, 3])
-		# log('The shape of label is : {}'.format(lbl.shape))
-		# lbl = lbl[x_start:x_end, y_start:y_end, z_start:z_end]
-		#
-		# ##img (4, 155, 240, 240)
-		# ##label (155, 240, 240)
-		#
-		# log('The maximum value of img is {}'.format(np.max(img)))
-		# log('The unique values of label {}'.format(np.unique(lbl)))
-		# log('!!!!!!! I should convert labels of [0 1 2 4] into [0, 1, 2, 3]!!!!!')
-		# lbl = convert_label(in_volume=lbl, label_convert_source=[0, 1, 2, 4],
-		# 							label_convert_target=[0, 1, 2, 3])
-		# # transform is disabled for now
-		# if self.is_transform:
-		# 	img, lbl = self.transform(img, lbl)
-		# log('The maximum value of img is {}'.format(np.max(img)))
-		# log('The unique values of lbl_patch {}'.format(np.unique(lbl)))
-		# # convert numpy type into torch type
-		# img = torch.from_numpy(img).float()
-		# lbl = torch.from_numpy(lbl).long()
+		img = np.stack((t1_img, t2_img, t1ce_img, flair_img))
+		patch_size = [64, 64, 64]
+		log('the patch_size is {} {} {}'.format(patch_size[0], patch_size[1], patch_size[2]))
+		lbl_patch_length = 1
+		# while lbl_patch_length == 1:
+		idx_min, idx_max = get_ND_bounding_box(label=lbl, margin=[0,0,0,0])
+		margin = 10
+		idx_min[0] = idx_min[0] - margin
+		idx_min[1] = idx_min[1] - margin
+		idx_min[2] = idx_min[2] - margin
+		# img = img[:,idx_min[0]:idx_max[0], idx_min[1]:idx_max[1], idx_min[2]:idx_max[2]]
+		# lbl = lbl[idx_min[0]:idx_max[0], idx_min[1]:idx_max[1], idx_min[2]:idx_max[2]]
+		# print('idx_min is {} idx_max is {}'.format(idx_min, idx_max))
+		x_start = randint(idx_min[0], img.shape[1] - patch_size[0])
+		# x_start = randint(8, img.shape[1] - patch_size[0] - 8)
+		x_end = x_start + patch_size[0]
+		# y_start = randint(0+8, img.shape[2] - patch_size[1]-8)
+		y_start = randint(idx_min[1], img.shape[2] - patch_size[1])
+		y_end = y_start + patch_size[1]
+		z_start = randint(idx_min[2], img.shape[3] - patch_size[2])
+		z_end = z_start + patch_size[2]
+		lbl_patch = lbl[x_start:x_end, y_start:y_end, z_start:z_end]
+		log('The unique value of lbl patch is {}'.format(np.unique(lbl_patch)))
+		lbl_patch_length = 1
+		log('The length value list is {}'.format(len(np.unique(lbl_patch))))
+		lbl_patch = np.array(lbl_patch, dtype=np.int32)
+		lbl_patch = convert_label(lbl_patch, [0, 1, 2, 4], [0, 1, 2, 3])
+		log('The shape of label is : {}'.format(lbl_patch.shape))
+
+		log('x_start is {} x_end is {}'.format(x_start, x_end))
+		log('The shape of image after stacking is : {}'.format(img.shape))
+		img_patch = img[:, x_start:x_end, y_start:y_end, z_start:z_end]
+		log('The shape of image after stacking is : {}'.format(img.shape))
+		img_patch = np.asarray(img_patch)
+			# img = np.array(img, dtype=np.uint8)
+
+
+		##img (4, 155, 240, 240)
+		##label (155, 240, 240)
+
+		log('The maximum value of img is {}'.format(np.max(img)))
+		log('The unique values of label {}'.format(np.unique(lbl)))
+		log('!!!!!!! I should convert labels of [0 1 2 4] into [0, 1, 2, 3]!!!!!')
+		lbl_patch = convert_label(in_volume=lbl_patch, label_convert_source=[0, 1, 2, 4],
+									label_convert_target=[0, 1, 2, 3])
+		# transform is disabled for now
+		if self.is_transform:
+			img, lbl = self.transform(img, lbl)
+		log('The maximum value of img is {}'.format(np.max(img)))
+		log('The unique values of lbl_patch {}'.format(np.unique(lbl)))
+		# convert numpy type into torch type
+		img_patch = torch.from_numpy(img_patch).float()
+		lbl_patch = torch.from_numpy(lbl_patch).long()
 
 		########### Previous data loading: End
 
 		########### Brats17 official data loading: Begin
 		# Step One
-		margin = 5
-		log('The shape of lbl is {}'.format(lbl.shape))
-		log('Step One : The unique values of lbl is {}'.format(np.unique(lbl)))
-		bbmin, bbmax = get_ND_bounding_box(flair_img, margin)
-		log('bbmin is {} and bbmax is {}'.format(bbmin, bbmax))
-		lbl_crop = crop_ND_volume_with_bounding_box(lbl, bbmin, bbmax)
-		log('Step One : The unique values of lbl_crop is {}'.format(np.unique(lbl_crop)))
-		log('Step One : The shape of lbl_crop is {}'.format(lbl_crop.shape))
-		t1_crop = crop_ND_volume_with_bounding_box(t1_img, bbmin, bbmax)
-		t1ce_crop = crop_ND_volume_with_bounding_box(t1ce_img, bbmin, bbmax)
-		t2_crop = crop_ND_volume_with_bounding_box(t2_img, bbmin, bbmax)
-		flair_crop = crop_ND_volume_with_bounding_box(flair_img, bbmin, bbmax)
-		log('The image size after crop_ND_volume_with_bounding_box is {}'.format(lbl_crop.shape))
-
-		# Step Two
-		volume_shape = lbl_crop.shape
-		sub_label_shape = [64, 64, 64]
-		batch_sample_model = ('full', 'valid', 'valid')
-		log('batch_sample_model is {}'.format(batch_sample_model[0]))
-		boundingbox = None
-		center_point = get_random_roi_sampling_center(volume_shape, sub_label_shape, batch_sample_model, boundingbox)
-		log('The center point is {}'.format(center_point))
-		# print('The centerpoint is ', center_point)
-
-		# Step Three
-		lbl_patch = extract_roi_from_volume(lbl_crop, center_point, sub_label_shape, 'zero')
-		log('Step Three : The unique values of lbl_patch is {}'.format(np.unique(lbl_patch)))
-		log('Step Three : The shape of lbl_patch is {}'.format(lbl_patch.shape))
-		t1_patch = extract_roi_from_volume(t1_crop, center_point, sub_label_shape, 'zero')
-		t1ce_patch = extract_roi_from_volume(t1ce_crop, center_point, sub_label_shape, 'zero')
-		t2_patch = extract_roi_from_volume(t2_crop, center_point, sub_label_shape, 'zero')
-		flair_patch = extract_roi_from_volume(flair_crop, center_point, sub_label_shape, 'zero')
-		img_patch = np.stack((t1_patch, t1ce_patch, t2_patch, flair_patch))
-
-		# Step Four
-		lbl_patch = convert_label(in_volume=lbl_patch, label_convert_source=[0, 1, 2, 4],
-									label_convert_target=[0, 1, 2, 3])
-		log('The maximum value of img is {}'.format(np.max(img_patch)))
-		log('The unique values of lbl_patch {}'.format(np.unique(lbl_patch)))
-		# img_patch = np.array(img_patch, dtype=np.uint8)
-		lbl_patch = np.array(lbl_patch, dtype=np.int32)
-		img_patch = torch.from_numpy(img_patch).float()
-		lbl_patch = torch.from_numpy(lbl_patch).long()
-		log('The size of lbl_patch is {}'.format(lbl_patch.shape))
-		log('The size of img_patch is {}'.format(img_patch.shape))
+		# margin = 5
+		# log('The shape of lbl is {}'.format(lbl.shape))
+		# log('Step One : The unique values of lbl is {}'.format(np.unique(lbl)))
+		# bbmin, bbmax = get_ND_bounding_box(flair_img, margin)
+		# log('bbmin is {} and bbmax is {}'.format(bbmin, bbmax))
+		# lbl_crop = crop_ND_volume_with_bounding_box(lbl, bbmin, bbmax)
+		# log('Step One : The unique values of lbl_crop is {}'.format(np.unique(lbl_crop)))
+		# log('Step One : The shape of lbl_crop is {}'.format(lbl_crop.shape))
+		# t1_crop = crop_ND_volume_with_bounding_box(t1_img, bbmin, bbmax)
+		# t1ce_crop = crop_ND_volume_with_bounding_box(t1ce_img, bbmin, bbmax)
+		# t2_crop = crop_ND_volume_with_bounding_box(t2_img, bbmin, bbmax)
+		# flair_crop = crop_ND_volume_with_bounding_box(flair_img, bbmin, bbmax)
+		# log('The image size after crop_ND_volume_with_bounding_box is {}'.format(lbl_crop.shape))
+		#
+		# # Step Two
+		# volume_shape = lbl_crop.shape
+		# sub_label_shape = [64, 64, 64]
+		# batch_sample_model = ('full', 'valid', 'valid')
+		# log('batch_sample_model is {}'.format(batch_sample_model[0]))
+		# boundingbox = None
+		# center_point = get_random_roi_sampling_center(volume_shape, sub_label_shape, batch_sample_model, boundingbox)
+		# log('The center point is {}'.format(center_point))
+		# # print('The centerpoint is ', center_point)
+		#
+		# # Step Three
+		# lbl_patch = extract_roi_from_volume(lbl_crop, center_point, sub_label_shape, 'zero')
+		# log('Step Three : The unique values of lbl_patch is {}'.format(np.unique(lbl_patch)))
+		# log('Step Three : The shape of lbl_patch is {}'.format(lbl_patch.shape))
+		# t1_patch = extract_roi_from_volume(t1_crop, center_point, sub_label_shape, 'zero')
+		# t1ce_patch = extract_roi_from_volume(t1ce_crop, center_point, sub_label_shape, 'zero')
+		# t2_patch = extract_roi_from_volume(t2_crop, center_point, sub_label_shape, 'zero')
+		# flair_patch = extract_roi_from_volume(flair_crop, center_point, sub_label_shape, 'zero')
+		# img_patch = np.stack((t1_patch, t1ce_patch, t2_patch, flair_patch))
+		#
+		# # Step Four
+		# lbl_patch = convert_label(in_volume=lbl_patch, label_convert_source=[0, 1, 2, 4],
+		# 						  label_convert_target=[0, 1, 2, 3])
+		# log('The maximum value of img is {}'.format(np.max(img_patch)))
+		# log('The unique values of lbl_patch {}'.format(np.unique(lbl_patch)))
+		# # img_patch = np.array(img_patch, dtype=np.uint8)
+		# lbl_patch = np.array(lbl_patch, dtype=np.int32)
+		# img_patch = torch.from_numpy(img_patch).float()
+		# lbl_patch = torch.from_numpy(lbl_patch).long()
+		# log('The size of lbl_patch is {}'.format(lbl_patch.shape))
+		# log('The size of img_patch is {}'.format(img_patch.shape))
 		########### Brats17 official data loading: End
+		# print('I am confused')
+		return img_patch, lbl_patch
 
 		#return img_patch, lbl_patch
-
-		return img_patch, lbl_patch
 
 	def transform(self, img, lbl):
 		img = img[:, :, ::-1]

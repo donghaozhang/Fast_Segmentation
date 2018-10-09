@@ -55,7 +55,7 @@ def get_model(name, n_classes):
 		model = model(im_sz=[80, 120, 120])
 
 	elif name == 'unet3d':
-		model = model(feature_scale=4, n_classes=4, is_deconv=True, in_channels=4)
+		model = model(feature_scale=4, n_classes=1, is_deconv=True, in_channels=4)
 
 	else:
 		raise 'Model {} not available'.format(name)

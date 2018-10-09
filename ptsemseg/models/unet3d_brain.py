@@ -117,8 +117,11 @@ class unet3d(nn.Module):
 		self.feature_scale = feature_scale
 
 		# filters = [64, 128, 256, 512, 1024]
-		filters = [64, 128, 256, 512]
+		# filters = [64, 128, 256, 512]
+		filters = [32, 64, 128, 256]
+		# filters = [16, 32, 64, 128]
 		filters = [int(x / self.feature_scale) for x in filters]
+		# print(filters)
 
 		# downsampling
 		self.conv1 = unetConv2_3d_regression(self.in_channels, filters[0], self.is_batchnorm)

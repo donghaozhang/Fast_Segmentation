@@ -55,7 +55,7 @@ def train(args):
 
 	log('The optimizer is Adam')
 	log('The learning rate is {}'.format(args.l_rate))
-	optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
+	optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 	# optimizer = torch.optim.SGD(model.parameters(), lr=1e-1, momentum=0.99)
 	# optimizer = torch.optim.Adam(model.parameters(), lr=args.l_rate)
 
@@ -81,11 +81,17 @@ def train(args):
 			elif args.arch == 'unet3d':
 				# criterion = DiceLoss()
 				# loss = criterion(outputs, labels)
+				labels = labels * 40
+				labels = labels + 1
 				log('The unique value of labels are {}'.format(np.unique(labels)))
 				log('The maximum of outputs are {}'.format(outputs.max()))
 				log('The size of output is {}'.format(outputs.size()))
 				log('The size of labels is {}'.format(labels.size()))
-				loss = cross_entropy3d(outputs, labels)
+				# loss = cross_entropy3d(outputs, labels)
+				loss = nn.L1Loss()
+				labels = labels.type(torch.cuda.FloatTensor)
+				outputs = torch.squeeze(outputs, dim=1)
+				loss = loss(outputs, labels)
 				#criterion = FocalCrossEntropyLoss3d()
 				#loss = criterion(outputs, labels)
 			else:
@@ -99,7 +105,7 @@ def train(args):
 		avg_loss_array = np.array(avg_loss)
 		print('The current loss of epoch', epoch, 'is', avg_loss_array[0][0])
 
-		if epoch % 5 == 0:
+		if epoch % 1 == 0:
 			torch.save(model, "runs/{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
 		# training model will be saved
 		# writer.add_scalar('train_main_loss', avg_loss_array[0][0], epoch)

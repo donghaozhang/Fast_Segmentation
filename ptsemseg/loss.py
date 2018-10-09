@@ -57,8 +57,8 @@ def cross_entropy3d(input, target, weight=None, size_average=True):
 	log('The size of input is {}'.format(input.size()))
 	input = F.log_softmax(input, dim=1)
 	log('LOSS=>CrossEntropy3D=>input.size():{} target.size():{}'.format(input.size(), target.size()))
-	weight = torch.tensor([0.001, 1, 1, 1], dtype=torch.float)
-	weight = weight.cuda()
+	# weight = torch.tensor([0.006858064671784196, 5, 1.44, 3.54], dtype=torch.float)
+	# weight = weight.cuda()
 	loss = nn.CrossEntropyLoss(weight=weight, size_average=size_average)
 	return loss(input, target)
 

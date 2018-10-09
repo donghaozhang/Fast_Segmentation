@@ -144,7 +144,7 @@ def test_brats17():
 	one_pt_total = 0
 	two_pt_total = 0
 	four_pt_total = 0
-	for i in range(0, len(lines)):
+	for i in range(0, 10):
 		# img_num = np.random.randint(0, len(lines))
 		img_num = i
 		log('The current image number is {}'.format(img_num))
@@ -163,14 +163,14 @@ def test_brats17():
 		two_count = list(lbl_flat).count(2)
 		# three_count = list(lbl_flat).count(3)
 		four_count = list(lbl_flat).count(4)
-		zero_count = -one_count-two_count-four_count
+		zero_count = img_voxel_num-one_count-two_count-four_count
 		zero_pt = img_voxel_num/zero_count
 		one_pt = img_voxel_num/one_count
 		two_pt  = img_voxel_num/two_count
 		four_pt = img_voxel_num/four_count
 		zero_pt_final = zero_pt / (zero_pt + one_pt + two_pt + four_pt)
 		one_pt_final = one_pt / (zero_pt + one_pt + two_pt + four_pt)
-		two_pt_final =two_pt / (zero_pt + one_pt + two_pt + four_pt)
+		two_pt_final = two_pt / (zero_pt + one_pt + two_pt + four_pt)
 		four_pt_final = four_pt / (zero_pt + one_pt + two_pt + four_pt)
 		zero_pt_total = zero_pt_total + zero_pt_final
 		one_pt_total = one_pt_total + one_pt_final
@@ -179,10 +179,10 @@ def test_brats17():
 		log('The size of lbl is {}'.format(lbl.shape))
 		log(lbl_path)
 		four_pt_total = four_pt_total + four_pt_final
-	zero_pt_total = zero_pt_total / len(lines)
-	one_pt_total = one_pt_total / len(lines)
-	two_pt_total = two_pt_total / len(lines)
-	four_pt_total = four_pt_total / len(lines)
+	zero_pt_total = zero_pt_total / 10
+	one_pt_total = one_pt_total / 10
+	two_pt_total = two_pt_total / 10
+	four_pt_total = four_pt_total / 10
 	log('lbl one count final is {}'.format(zero_pt_total))
 	log('lbl two count is {}'.format(two_pt_total))
 	log('lbl four count is {}'.format(four_pt_total))
