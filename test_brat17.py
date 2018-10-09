@@ -127,12 +127,13 @@ def test_brats17(args):
 
 	# The path of the model
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_19.pkl'
+	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_98.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_140.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_255.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/unet3d_brats17_loader_1_500.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/unet3d_brats17_loader_1_19.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/unet3d_brats17_loader_1_85.pkl'
-	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/unet3d_brats17_loader_1_99.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/unet3d_brats17_loader_1_99.pkl'
 	log('dirname is {}'.format(os.path.dirname(model_path)))
 	model_basename = os.path.basename(model_path)
 	log('The basename is {}'.format(os.path.basename(model_path)))
@@ -246,22 +247,24 @@ def test_brats17(args):
 					# print('patch tensor size: {}'.format(patch.size()))
 					pred = model(img_patch)
 
-					# pred = np.squeeze(pred.data.cpu().numpy(), axis=0)
-					# pred = np.argmax(pred, axis=0)
+					pred = np.squeeze(pred.data.cpu().numpy(), axis=0)
+					pred = np.argmax(pred, axis=0)
 
+					## The Unet regression start
 					# Convert CUDA Tensor to Numpy
-					pred = pred.to(torch.device("cpu"))
+					# pred = pred.to(torch.device("cpu"))
+					# pred = pred.detach().numpy()
+					# log('The maximum value of final label is {}'.format(pred.max()))
+					# log('The minimum value of final label is {}'.format(pred.min()))
+					# log('The unique values are {}'.format(np.unique(pred)))
+					# log('The length of unique values is {}'.format(len(np.unique(pred))))
+					# pred = (pred-pred.min())/(pred.max()-pred.min()) * 1000
+					# log('The maximum value of final label is {}'.format(pred.max()))
+					# log('The minimum value of final label is {}'.format(pred.min()))
+					# # log('The unique values are {}'.format(np.unique(pred)))
+					# log('The length of unique values is {}'.format(len(np.unique(pred))))
+					## The Unet regression end
 
-					pred = pred.detach().numpy()
-					log('The maximum value of final label is {}'.format(pred.max()))
-					log('The minimum value of final label is {}'.format(pred.min()))
-					# log('The unique values are {}'.format(np.unique(pred)))
-					log('The length of unique values is {}'.format(len(np.unique(pred))))
-					pred = (pred-pred.min())/(pred.max()-pred.min()) * 1000
-					log('The maximum value of final label is {}'.format(pred.max()))
-					log('The minimum value of final label is {}'.format(pred.min()))
-					# log('The unique values are {}'.format(np.unique(pred)))
-					log('The length of unique values is {}'.format(len(np.unique(pred))))
 					final_label[x:x + patch_size[0], y:y + patch_size[1], z:z + patch_size[2]] = pred
 
 					if overlapZ:
@@ -303,8 +306,8 @@ def test_brats17(args):
 			x += patch_size[0]
 		# log('The maximum value of final label is {}'.format(final_label.max()))
 		# log('The minimum value of final label is {}'.format(final_label.min()))
-		# final_label = convert_label(in_volume=final_label, label_convert_source=[0, 1, 2, 3],
-		# 						label_convert_target=[0, 1, 2, 4])
+		final_label = convert_label(in_volume=final_label, label_convert_source=[0, 1, 2, 3],
+								label_convert_target=[0, 1, 2, 4])
 		# print('The values of this prediction is {}'.format(np.unique(final_label)))
 		save_array_as_nifty_volume(final_label, 'runs/' + model_basename_no_ext + '/' + os.path.basename(cur_im_name) + ".nii.gz")
 
