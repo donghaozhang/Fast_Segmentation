@@ -16,7 +16,7 @@ from ptsemseg.loader import get_loader, get_data_path
 from ptsemseg.loss import cross_entropy2d, cross_entropy3d, FocalCrossEntropyLoss3d, FocalCrossEntropyLoss2d, DiceLoss
 from ptsemseg.metrics import scores
 from lr_scheduling import *
-# from tensorboardX import SummaryWriter
+from tensorboardX import SummaryWriter
 
 DEBUG = False
 
@@ -30,7 +30,9 @@ def train(args):
 	print('###### Step One: Setup Dataloader')
 	data_loader = get_loader(args.dataset)
 	data_path = get_data_path(args.dataset)
-	# writer = SummaryWriter()
+	# rand_int is used to
+	rand_int = np.random.randint(10000)
+	writer = SummaryWriter('runs/'+str(rand_int))
 
 	# For 2D dataset keep is_transform True
 	# loader = data_loader(data_path, is_transform=True, img_size=(args.img_rows, args.img_cols))
@@ -55,12 +57,14 @@ def train(args):
 
 	log('The optimizer is Adam')
 	log('The learning rate is {}'.format(args.l_rate))
-	optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-	# optimizer = torch.optim.SGD(model.parameters(), lr=1e-1, momentum=0.99)
-	# optimizer = torch.optim.Adam(model.parameters(), lr=args.l_rate)
+	# optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
+	# optimizer = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.99)
+	optimizer = torch.optim.Adam(model.parameters(), lr=args.l_rate)
 
 	# Train Model
 	print('###### Step Three: Training Model')
+
+
 	for epoch in range(args.n_epoch):
 		img_counter = 1
 		loss_sum = 0
@@ -76,24 +80,19 @@ def train(args):
 			optimizer.zero_grad()
 			log('The maximum value of input image is {}'.format(images.max()))
 			outputs = model(images)
-			if args.arch == 'bisenet3Dbrain':
+			if args.arch == 'bisenet3Dbrain' or args.arch == 'unet3d_cls':
 				loss = cross_entropy3d(outputs, labels)
-			elif args.arch == 'unet3d':
-				# criterion = DiceLoss()
-				# loss = criterion(outputs, labels)
+			elif args.arch == 'unet3d_res':
 				labels = labels * 40
 				labels = labels + 1
 				log('The unique value of labels are {}'.format(np.unique(labels)))
 				log('The maximum of outputs are {}'.format(outputs.max()))
 				log('The size of output is {}'.format(outputs.size()))
 				log('The size of labels is {}'.format(labels.size()))
-				# loss = cross_entropy3d(outputs, labels)
 				loss = nn.L1Loss()
 				labels = labels.type(torch.cuda.FloatTensor)
 				outputs = torch.squeeze(outputs, dim=1)
 				loss = loss(outputs, labels)
-				#criterion = FocalCrossEntropyLoss3d()
-				#loss = criterion(outputs, labels)
 			else:
 				loss = cross_entropy2d(outputs, labels)
 
@@ -104,16 +103,11 @@ def train(args):
 		avg_loss = loss_sum / img_counter
 		avg_loss_array = np.array(avg_loss)
 		print('The current loss of epoch', epoch, 'is', avg_loss_array[0][0])
+		# training model will be saved
+		writer.add_scalar('train_main_loss', avg_loss_array[0][0], epoch)
 
 		if epoch % 1 == 0:
-			torch.save(model, "runs/{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
-		# training model will be saved
-		# writer.add_scalar('train_main_loss', avg_loss_array[0][0], epoch)
-		# test_output = model(test_image)
-		# predicted = loader.decode_segmap(test_output[0].cpu().data.numpy().argmax(0))
-		# target = loader.decode_segmap(test_segmap.numpy())
-		# torch.save(model, "runs/{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
-
+			torch.save(model, "runs/{}_{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch, rand_int))
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Hyperparams')

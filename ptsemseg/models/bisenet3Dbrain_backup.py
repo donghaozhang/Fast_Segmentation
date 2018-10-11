@@ -3,7 +3,7 @@ from torch.autograd import Variable
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-DEBUG = False
+DEBUG = True
 
 
 def log(s):
@@ -125,7 +125,7 @@ class FeatureFusion3DModule(nn.Module):
 		self.pool_size = pool_size
 
 	def forward(self, x):
-		log(' debug: the size of input is {}'.format(x.size()))
+		log(' debug: the size of input is '.format(x.size()))
 		x = self.conv1(x)
 		x = self.bn1(x)
 		x = F.relu(x)
@@ -133,7 +133,7 @@ class FeatureFusion3DModule(nn.Module):
 
 		# global pool + conv + relu + conv + sigmoid
 		x = F.adaptive_avg_pool3d(x, (self.pool_size[0], self.pool_size[1], self.pool_size[2]))
-		log(' debug: the size x after {}'.format(x.size()))
+		log(' debug: the size x after '.format(x.size()))
 		x = self.conv2(x)
 		x = F.relu(x, inplace=False)
 		x = self.conv3(x)
@@ -143,117 +143,6 @@ class FeatureFusion3DModule(nn.Module):
 		x = torch.mul(before_mul, x)
 		x = x + before_mul
 		return x
-
-
-# My own modification starts now.
-class DHUpRes(nn.Module):
-	# This
-	def __init__(self, conv_in_channels=4, conv_out_channels=4):
-		super(DHUpRes, self).__init__()
-
-		self.conv1 = nn.Sequential(
-			nn.ConvTranspose3d(conv_in_channels, conv_out_channels, kernel_size=2, stride=2),
-			nn.LeakyReLU(0.2, False),
-			unetResConv_3d(conv_out_channels, conv_out_channels, False)
-			)
-
-	def forward(self, inputs):
-		outputs = self.conv1(inputs)
-		log('debuging....outputs are {}'.format(outputs.size()))
-		log('debuging....inputs are {}'.format(inputs.size()))
-		# residual - add inputs
-		return outputs
-
-
-class unetUp3d_regression_res(nn.Module):
-	def __init__(self, in_size, out_size, is_deconv):
-		super(unetUp3d_regression_res, self).__init__()
-		self.conv = unetConv2_3d_regression(in_size, out_size, False)
-		if is_deconv:
-			log('The deconvolution is used.')
-			# convTranspose with residual
-			self.up = nn.Sequential(nn.ConvTranspose3d(in_size, out_size, kernel_size=2, stride=2),
-									nn.LeakyReLU(0.2, False),
-									unetResConv_3d(out_size, out_size, False))
-		else:
-			log('The simple interpolate is used.')
-			self.up = F.interpolate(scale_factor=2, mode='bilinear')
-
-	def forward(self, inputs1, inputs2):
-		log('>>>unetUp3d_regression_res: inputs1 size {}, inputs2 size {}'.format(inputs1.size(), inputs2.size()))
-		outputs2 = self.up(inputs2)
-		log('>>>unetUp3d_regression_res: upsample inputs2, get outputs2 size {}'.format(outputs2.size()))
-		offset1 = outputs2.size()[2] - inputs1.size()[2]
-		offset2 = outputs2.size()[3] - inputs1.size()[3]
-		offset3 = outputs2.size()[4] - inputs1.size()[4]
-		log('>>>unetUp3d_regression_res: offset between outputs2 and inputs1 is: {}'.format(
-			(offset1, offset2, offset3)))
-		padding = [offset3 // 2, offset3 - offset3 // 2, offset2 // 2, offset2 - offset2 // 2, offset1 // 2, offset1 - offset1 // 2]
-		log('>>>unetUp3d_regression_res: padding is: {}'.format(padding))
-		outputs1 = F.pad(inputs1, padding)
-		log('>>>unetUp3d_regression_res: after padding inputs1, we get outputs1 size {}'.format(outputs1.size()))
-
-		output = torch.cat([outputs1, outputs2], 1)
-		log('>>>unetUp3d_regression_res: after cat outputs1 and outputs2: {}'.format(output.size()))
-
-		output = self.conv(output)
-		log('>>>unetUp3d_regression_res: after conv: {}'.format(output.size()))
-		return output
-
-
-class unetConv2_3d_regression(nn.Module):
-	def __init__(self, in_size, out_size, is_batchnorm):
-		super(unetConv2_3d_regression, self).__init__()
-
-		if is_batchnorm:
-			self.conv1 = nn.Sequential(
-				nn.Conv3d(in_size, out_size, 3, 1, 1),
-				nn.BatchNorm3d(out_size),
-				nn.ReLU(),
-			)
-			self.conv2 = nn.Sequential(
-				nn.Conv3d(out_size, out_size, 3, 1, 1),
-				nn.BatchNorm3d(out_size),
-				nn.ReLU(),
-			)
-		else:
-			self.conv1 = nn.Sequential(nn.Conv3d(in_size, out_size, 3, 1, 1), nn.ReLU())
-			self.conv2 = nn.Sequential(
-				nn.Conv3d(out_size, out_size, 3, 1, 1), nn.ReLU()
-			)
-
-	def forward(self, inputs):
-		outputs = self.conv1(inputs)
-		outputs = self.conv2(outputs)
-		return outputs
-
-class unetResConv_3d(nn.Module):
-	def __init__(self, in_size, out_size, is_batchnorm):
-		super(unetResConv_3d, self).__init__()
-
-		if is_batchnorm:
-			self.conv1 = nn.Sequential(
-				nn.Conv3d(in_size, out_size, 3, 1, 1),
-				nn.BatchNorm3d(out_size),
-				nn.ReLU(),
-			)
-			self.conv2 = nn.Sequential(
-				nn.Conv3d(out_size, out_size, 3, 1, 1),
-				nn.BatchNorm3d(out_size),
-				nn.ReLU(),
-			)
-		else:
-			self.conv1 = nn.Sequential(nn.Conv3d(in_size, out_size, 3, 1, 1), nn.ReLU())
-			self.conv2 = nn.Sequential(
-				nn.Conv3d(out_size, out_size, 3, 1, 1), nn.ReLU()
-			)
-
-	def forward(self, inputs):
-		outputs = self.conv1(inputs)
-		outputs = self.conv2(outputs)
-		# residual - add inputs
-		outputs = torch.add(outputs, inputs)
-		return outputs
 
 
 class Bisenet3DBrain(nn.Module):
@@ -300,19 +189,6 @@ class Bisenet3DBrain(nn.Module):
 		self.block2_spatial_path = SpatialPath3DModule(conv_in_channels=64, conv_out_channels=64)
 		self.block3_spatial_path = SpatialPath3DModule(conv_in_channels=64, conv_out_channels=64)
 
-		# AVG 1 => Up block 1_1
-		self.upblock1_1 = DHUpRes(conv_in_channels=32, conv_out_channels=32)
-
-		# AVG 2 => Up block 2_1
-		self.upblock2_1 = DHUpRes(conv_in_channels=32, conv_out_channels=32)
-		self.upblock2_2 = DHUpRes(conv_in_channels=32, conv_out_channels=32)
-		self.upblock2_3 = DHUpRes(conv_in_channels=32, conv_out_channels=32)
-		#print('This is running')
-		# AVG 3 => Up block 3_1
-		self.upblock3_1 = DHUpRes(conv_in_channels=4, conv_out_channels=4)
-		self.upblock3_2 = DHUpRes(conv_in_channels=4, conv_out_channels=4)
-		self.upblock3_3 = DHUpRes(conv_in_channels=4, conv_out_channels=4)
-		# self.upblock3_1 = unetUp3d_regression_res(conv_in_channels=4, conv_out_channels=4)
 		self.FFM = FeatureFusion3DModule(conv_in_channels=128, conv_out_channels=4, pool_size=self.pool_size)
 	# #------- init weights --------
 	# for m in self.modules():
@@ -361,24 +237,15 @@ class Bisenet3DBrain(nn.Module):
 		y = self.block4_xception39(y)
 		log(' level 3: 1 / 16 the size of xception39 after block4 is {}'.format(y.size()))
 		# level one 256 / 2 => 112, level two 112 / 2 => 56, level three 56 / 2 => 28
-		#y_16 = F.adaptive_avg_pool3d(y, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
-		y_16 = self.upblock1_1(y)
+		y_16 = F.adaptive_avg_pool3d(y, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
 		self.arm1_context_path.pool_size = self.pool_size
 		y_arm = self.arm1_context_path(y_16)
 		log(' the size of image feature after first y_arm is {}'.format(y_arm.size()))
-		log('===== The required upsamling sizes are  x_{} y_{} z_{}'.format(input_size_x / y_16.size(2),
-																			input_size_y / y_16.size(3),
-																			input_size_z / y_16.size(4)))
-		#y_16_up = self.upblock2_1(y_16)
-		#y_16_up = self.upblock2_1(y_16_up)
-		#y_16_up = self.upblock2_1(y_16_up)
-		#log(' the size of y_16 is {}'.format(y_16.size()))
-		#y_16_up = F.adaptive_avg_pool3d(y_16, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
-		#log(' the size of y_16_up is {}'.format(y_16_up.size()))
-		#y_16_up
+		y_16_up = F.adaptive_avg_pool3d(y_16, (avg_pool_size_x, avg_pool_size_y, avg_pool_size_z))
+		log(' the size of y_32_up is {}'.format(y_16_up.size()))
 
 		# Concatenate the image feature of ARM1,
-		y_cat = torch.cat([y_arm, y_16], dim=1)
+		y_cat = torch.cat([y_arm, y_16_up], dim=1)
 		# y_cat = torch.cat([y_cat, y_32_up], dim=1)
 		log(' size of y_cat is {}'.format(y_cat.size()))
 		# Spatial Path
@@ -394,23 +261,19 @@ class Bisenet3DBrain(nn.Module):
 		log(' the size of image feature after the context path and spatial path is {}'.format(y_cat.size()))
 		self.FFM.pool_size = self.pool_size
 		y_cat = self.FFM(y_cat)
-		y_cat = self.upblock3_1(y_cat)
-		y_cat = self.upblock3_2(y_cat)
-		y_cat = self.upblock3_3(y_cat)
 		log(' the size of image feature after FFM is {}'.format(y_cat.size()))
-		log('===== The required upsamling sizes are  x_{} y_{} z_{}'.format(input_size_x/y_cat.size(2), input_size_y/y_cat.size(3), input_size_z/y_cat.size(4)))
-		# y_cat = F.adaptive_avg_pool3d(y_cat, (input_size_x, input_size_y, input_size_z))
+		y_cat = F.adaptive_avg_pool3d(y_cat, (input_size_x, input_size_y, input_size_z))
 		log(' the size of image feature after FFM is {}'.format(y_cat.size()))
 		return y_cat
 
 # unet 3D brain
-# log(".........")
-# log('The start of 3D bisenet')
-# fake_im_num = 1
-# unet_model_3D = Bisenet3DBrain()
-# unet_model_3D.cuda()
-# numpy_fake_image_3d = np.random.rand(fake_im_num, 4, 64, 64, 64)
-# tensor_fake_image_3d = torch.FloatTensor(numpy_fake_image_3d)
-# torch_fake_image_3d = Variable(tensor_fake_image_3d).cuda()
-# output_3d = unet_model_3D(torch_fake_image_3d)
-# log(".........")
+log(".........")
+log('The start of 3D bisenet')
+fake_im_num = 1
+unet_model_3D = Bisenet3DBrain()
+unet_model_3D.cuda()
+numpy_fake_image_3d = np.random.rand(fake_im_num, 4, 64, 64, 64)
+tensor_fake_image_3d = torch.FloatTensor(numpy_fake_image_3d)
+torch_fake_image_3d = Variable(tensor_fake_image_3d).cuda()
+output_3d = unet_model_3D(torch_fake_image_3d)
+log(".........")

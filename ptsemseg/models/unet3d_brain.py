@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from torch.autograd import Variable
 import torch.nn.functional as F
+
 DEBUG = False
 
 
@@ -16,11 +17,13 @@ class unetUp3d_regression_res(nn.Module):
 		super(unetUp3d_regression_res, self).__init__()
 		self.conv = unetConv2_3d_regression(in_size, out_size, False)
 		if is_deconv:
+			log('The deconvolution is used.')
 			# convTranspose with residual
 			self.up = nn.Sequential(nn.ConvTranspose3d(in_size, out_size, kernel_size=2, stride=2),
 									nn.LeakyReLU(0.2, False),
 									unetResConv_3d(out_size, out_size, False))
 		else:
+			log('The simple interpolate is used.')
 			self.up = F.interpolate(scale_factor=2, mode='bilinear')
 
 	def forward(self, inputs1, inputs2):
@@ -118,8 +121,8 @@ class unet3d(nn.Module):
 
 		# filters = [64, 128, 256, 512, 1024]
 		# filters = [64, 128, 256, 512]
-		filters = [32, 64, 128, 256]
-		# filters = [16, 32, 64, 128]
+		# filters = [32, 64, 128, 256]
+		filters = [16, 32, 64, 128]
 		filters = [int(x / self.feature_scale) for x in filters]
 		# print(filters)
 
@@ -174,7 +177,7 @@ class unet3d(nn.Module):
 		log('unet3d: after resConv3 size is {} should be the same'.format(conv3.size()))
 		maxpool3 = self.maxpool3(conv3)
 		log('unet3d: after maxpool3 size is {}'.format(maxpool3.size()))
-
+		#print(I am confused)
 		center = self.center(maxpool3)
 		log('unet3d: after center => center {}'.format(center.size()))
 		center = self.resConv4(center)
@@ -191,13 +194,13 @@ class unet3d(nn.Module):
 
 		return final
 # unet 3D brain
-log(".........")
-log('The start of 3D bisenet')
-fake_im_num = 1
-unet_model_3D = unet3d(feature_scale=4, n_classes=4, is_deconv=True, in_channels=4)
-unet_model_3D.cuda()
-numpy_fake_image_3d = np.random.rand(fake_im_num, 4, 80, 120, 120)
-tensor_fake_image_3d = torch.FloatTensor(numpy_fake_image_3d)
-torch_fake_image_3d = Variable(tensor_fake_image_3d).cuda()
-output_3d = unet_model_3D(torch_fake_image_3d)
-log(".........")
+# log(".........")
+# log('The start of 3D bisenet')
+# fake_im_num = 1
+# unet_model_3D = unet3d(feature_scale=4, n_classes=4, is_deconv=True, in_channels=4)
+# unet_model_3D.cuda()
+# numpy_fake_image_3d = np.random.rand(fake_im_num, 4, 80, 120, 120)
+# tensor_fake_image_3d = torch.FloatTensor(numpy_fake_image_3d)
+# torch_fake_image_3d = Variable(tensor_fake_image_3d).cuda()
+# output_3d = unet_model_3D(torch_fake_image_3d)
+# log(".........")

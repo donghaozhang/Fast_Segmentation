@@ -49,13 +49,16 @@ def get_model(name, n_classes):
 					  input_size=256,
 					  pretrained=True)
 	# elif name == 'bisenet3D':
-	#     model = model()
+	#	model = model()
 
 	elif name == 'bisenet3Dbrain':
-		model = model(im_sz=[80, 120, 120])
+		model = model()
 
-	elif name == 'unet3d':
+	elif name == 'unet3d_res':
 		model = model(feature_scale=4, n_classes=1, is_deconv=True, in_channels=4)
+
+	elif name == 'unet3d_cls':
+		model = model(feature_scale=4, n_classes=4, is_deconv=True, in_channels=4)
 
 	else:
 		raise 'Model {} not available'.format(name)
@@ -74,6 +77,7 @@ def _get_model_instance(name):
 		'linknet': linknet,
 		'gcnnet': GCN,
 		'bisenet3Dbrain': Bisenet3DBrain,
-		'unet3d': unet3d,
+		'unet3d_res': unet3d,
+		'unet3d_cls': unet3d,
 		# 'bisenet3D': Bisenet3D,
 	}[name]
