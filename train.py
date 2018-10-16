@@ -26,12 +26,14 @@ def log(s):
 		print(s)
 
 def train(args):
+	rand_int = np.random.randint(10000)
+	print('###### Step One: Log Number is ', rand_int)
+
 	# Setup Dataloader
 	print('###### Step One: Setup Dataloader')
 	data_loader = get_loader(args.dataset)
 	data_path = get_data_path(args.dataset)
 	# rand_int is used to
-	rand_int = np.random.randint(10000)
 	writer = SummaryWriter('runs/'+str(rand_int))
 
 	# For 2D dataset keep is_transform True
@@ -92,10 +94,12 @@ def train(args):
 				loss = nn.L1Loss()
 				labels = labels.type(torch.cuda.FloatTensor)
 				outputs = torch.squeeze(outputs, dim=1)
+
 				loss = loss(outputs, labels)
 			else:
 				loss = cross_entropy2d(outputs, labels)
-
+			# print('The property of labels is ', labels.requires_grad)
+			print('The property of labels is ', outputs.requires_grad)
 			loss.backward()
 			optimizer.step()
 			loss_sum = loss_sum + torch.Tensor([loss.data]).unsqueeze(0).cpu()

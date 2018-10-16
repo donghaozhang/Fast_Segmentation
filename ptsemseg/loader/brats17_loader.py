@@ -182,39 +182,6 @@ def crop_ND_volume_with_bounding_box(volume, min_idx, max_idx):
 	return output
 
 
-def load_3d_volume_as_array(filename):
-	if ('.nii' in filename):
-		return load_nifty_volume_as_array(filename)
-	elif ('.mha' in filename):
-		return load_mha_volume_as_array(filename)
-	raise ValueError('{0:} unspported file format'.format(filename))
-
-
-def load_mha_volume_as_array(filename):
-	img = sitk.ReadImage(filename)
-	nda = sitk.GetArrayFromImage(img)
-	return nda
-
-
-def load_nifty_volume_as_array(filename, with_header=False):
-	"""
-	load nifty image into numpy array, and transpose it based on the [z,y,x] axis order
-	The output array shape is like [Depth, Height, Width]
-	inputs:
-		filename: the input file name, should be *.nii or *.nii.gz
-		with_header: return affine and hearder infomation
-	outputs:
-		data: a numpy data array
-	"""
-	img = nibabel.load(filename)
-	data = img.get_data()
-	data = np.transpose(data, [2, 1, 0])
-	if (with_header):
-		return data, img.affine, img.header
-	else:
-		return data
-
-
 def convert_label(in_volume, label_convert_source, label_convert_target):
 	"""
 	convert the label value in a volume
@@ -312,6 +279,32 @@ def extract_roi_from_volume(volume, in_center, output_shape, fill='random'):
 	return output
 
 
+class RandomFlipInsideOut3d(object):
+	def __init__(self, p):
+		self.p = p  # [0,1)
+
+	def __call__(self, img, mask, rd_int):
+		if random.random() < self.p:
+			return (
+				(np.flip(img, axis=rd_int)).copy(), (np.flip(mask, axis=rd_int)).copy()
+			)
+		return img, mask
+
+
+class RandomRotate3d(object):
+	def __init__(self, degree):
+		self.degree = degree  # -180, 180
+
+	def __call__(self, img, mask):
+		from scipy.ndimage import rotate
+		rotate_degree = random.random() * 2 * self.degree - self.degree  # -degree, +degree
+		rotation_plane = random.sample(range(0, 3), 2)
+		return (
+			rotate(img, rotate_degree, rotation_plane).copy(),
+			rotate(mask, rotate_degree, rotation_plane).copy()
+		)
+
+
 class Brats17Loader(data.Dataset):
 	def __init__(self, root, split="train", is_transform=False, img_size=None):
 		self.root = root
@@ -381,7 +374,7 @@ class Brats17Loader(data.Dataset):
 		log('the patch_size is {} {} {}'.format(patch_size[0], patch_size[1], patch_size[2]))
 		lbl_patch_length = 1
 		# while lbl_patch_length == 1:
-		idx_min, idx_max = get_ND_bounding_box(label=lbl, margin=[0,0,0,0])
+		idx_min, idx_max = get_ND_bounding_box(label=lbl, margin=[0, 0, 0, 0])
 		margin = 10
 		idx_min[0] = idx_min[0] - margin
 		idx_min[1] = idx_min[1] - margin
@@ -410,8 +403,27 @@ class Brats17Loader(data.Dataset):
 		img_patch = img[:, x_start:x_end, y_start:y_end, z_start:z_end]
 		log('The shape of image after stacking is : {}'.format(img.shape))
 		img_patch = np.asarray(img_patch)
-			# img = np.array(img, dtype=np.uint8)
+		flip_int = np.random.randint(0, 4)
+		# print('The number of flip_int is ', flip_int)
+		if flip_int < 2.5:
+			t1_patch = img_patch[0, :, :, :]
+			t1_patch = (np.flip(t1_patch, axis=flip_int)).copy()
+			t2_patch = img_patch[1, :, :, :]
+			t2_patch = (np.flip(t2_patch, axis=flip_int)).copy()
+			t1ce_patch = img_patch[2, :, :, :]
+			t1ce_patch = (np.flip(t1ce_patch, axis=flip_int)).copy()
+			flair_patch = img_patch[3, :, :, :]
+			flair_patch = (np.flip(flair_patch, axis=flip_int)).copy()
+			img_patch[0, :, :, :] = t1_patch.copy()
+			img_patch[1, :, :, :] = t1ce_patch.copy()
+			img_patch[2, :, :, :] = t2_patch.copy()
+			img_patch[3, :, :, :] = flair_patch.copy()
+			# img_patch = (np.flip(img_patch, axis=flip_int)).copy()
+			# print('The shape of img is {}'.format(img_patch.shape))
+			lbl_patch = (np.flip(lbl_patch, axis=flip_int)).copy()
+			# print('The shape of lbl is {}'.format(lbl_patch.shape))
 
+		# img = np.array(img, dtype=np.uint8)
 
 		##img (4, 155, 240, 240)
 		##label (155, 240, 240)
@@ -420,7 +432,7 @@ class Brats17Loader(data.Dataset):
 		log('The unique values of label {}'.format(np.unique(lbl)))
 		log('!!!!!!! I should convert labels of [0 1 2 4] into [0, 1, 2, 3]!!!!!')
 		lbl_patch = convert_label(in_volume=lbl_patch, label_convert_source=[0, 1, 2, 4],
-									label_convert_target=[0, 1, 2, 3])
+								  label_convert_target=[0, 1, 2, 3])
 		# transform is disabled for now
 		if self.is_transform:
 			img, lbl = self.transform(img, lbl)
@@ -483,7 +495,7 @@ class Brats17Loader(data.Dataset):
 		# print('I am confused')
 		return img_patch, lbl_patch
 
-		#return img_patch, lbl_patch
+	# return img_patch, lbl_patch
 
 	def transform(self, img, lbl):
 		img = img[:, :, ::-1]
