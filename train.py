@@ -18,7 +18,7 @@ from ptsemseg.metrics import scores
 from lr_scheduling import *
 from tensorboardX import SummaryWriter
 
-DEBUG = False
+DEBUG = True
 
 
 def log(s):
@@ -27,7 +27,7 @@ def log(s):
 
 def train(args):
 	rand_int = np.random.randint(10000)
-	print('###### Step One: Log Number is ', rand_int)
+	print('###### Step Zero: Log Number is ', rand_int)
 
 	# Setup Dataloader
 	print('###### Step One: Setup Dataloader')
@@ -66,7 +66,7 @@ def train(args):
 	# Train Model
 	print('###### Step Three: Training Model')
 
-
+	epoch_loss_array_total = np.zeros([1, 2])
 	for epoch in range(args.n_epoch):
 		img_counter = 1
 		loss_sum = 0
@@ -80,7 +80,7 @@ def train(args):
 				labels = Variable(labels)
 
 			optimizer.zero_grad()
-			log('The maximum value of input image is {}'.format(images.max()))
+			# log('The maximum value of input image is {}'.format(images.max()))
 			outputs = model(images)
 			if args.arch == 'bisenet3Dbrain' or args.arch == 'unet3d_cls':
 				loss = cross_entropy3d(outputs, labels)
@@ -98,20 +98,30 @@ def train(args):
 				loss = loss(outputs, labels)
 			else:
 				loss = cross_entropy2d(outputs, labels)
-			# print('The property of labels is ', labels.requires_grad)
-			print('The property of labels is ', outputs.requires_grad)
 			loss.backward()
 			optimizer.step()
 			loss_sum = loss_sum + torch.Tensor([loss.data]).unsqueeze(0).cpu()
 
 		avg_loss = loss_sum / img_counter
 		avg_loss_array = np.array(avg_loss)
+		epoch_loss_array_total = np.concatenate((epoch_loss_array_total, [[avg_loss_array[0][0], epoch]]), axis=0)
 		print('The current loss of epoch', epoch, 'is', avg_loss_array[0][0])
 		# training model will be saved
+		log('The variable avg_loss_array is {}'.format(avg_loss_array))
 		writer.add_scalar('train_main_loss', avg_loss_array[0][0], epoch)
 
 		if epoch % 1 == 0:
 			torch.save(model, "runs/{}_{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch, rand_int))
+	# I guess the shape is (epoch, 2)
+	log('epoch_loss_array_total is {}'.format(epoch_loss_array_total))
+	# The shape of epoch_loss_array_total is (epoch, 2)
+	log('the shape of epoch_loss_array_total is {}'.format(epoch_loss_array_total.shape))
+	epoch_loss_array_total = np.delete(arr=epoch_loss_array_total, obj=0, axis=0)
+	log('the shape of epoch_loss_array_total after removal is {}'.format(epoch_loss_array_total.shape))
+	loss_min_indice = np.argmin(epoch_loss_array_total, axis=0)
+	log('The loss_min_indice is {}'.format(loss_min_indice))
+	torch.save(model, "runs/{}_{}_{}_{}_{}_min.pkl".format(args.arch, args.dataset, args.feature_scale,
+															loss_min_indice[0], rand_int))
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Hyperparams')

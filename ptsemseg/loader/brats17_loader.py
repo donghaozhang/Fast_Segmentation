@@ -406,6 +406,7 @@ class Brats17Loader(data.Dataset):
 		flip_int = np.random.randint(0, 4)
 		# print('The number of flip_int is ', flip_int)
 		if flip_int < 2.5:
+			log('t1_patch is {}'.format(img_patch.shape))
 			t1_patch = img_patch[0, :, :, :]
 			t1_patch = (np.flip(t1_patch, axis=flip_int)).copy()
 			t2_patch = img_patch[1, :, :, :]
