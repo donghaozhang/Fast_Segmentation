@@ -18,23 +18,23 @@ from ptsemseg.metrics import scores
 from lr_scheduling import *
 from tensorboardX import SummaryWriter
 
-DEBUG = True
+DEBUG = False
 
 
 def log(s):
 	if DEBUG:
 		print(s)
 
+
+
+
 def train(args):
-	rand_int = np.random.randint(10000)
-	print('###### Step Zero: Log Number is ', rand_int)
+
 
 	# Setup Dataloader
 	print('###### Step One: Setup Dataloader')
 	data_loader = get_loader(args.dataset)
 	data_path = get_data_path(args.dataset)
-	# rand_int is used to
-	writer = SummaryWriter('runs/'+str(rand_int))
 
 	# For 2D dataset keep is_transform True
 	# loader = data_loader(data_path, is_transform=True, img_size=(args.img_rows, args.img_cols))
@@ -48,7 +48,7 @@ def train(args):
 	# Setup Model
 	print('###### Step Two: Setup Model')
 	model = get_model(args.arch, n_classes)
-
+	model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_251_3020_min.pkl')
 	if torch.cuda.is_available():
 		model.cuda(0)
 		test_image, test_segmap = loader[0]
@@ -62,6 +62,7 @@ def train(args):
 	# optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
 	# optimizer = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.99)
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.l_rate)
+	# optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
 	# Train Model
 	print('###### Step Three: Training Model')
@@ -111,7 +112,7 @@ def train(args):
 		writer.add_scalar('train_main_loss', avg_loss_array[0][0], epoch)
 
 		if epoch % 1 == 0:
-			torch.save(model, "runs/{}_{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch, rand_int))
+			torch.save(model, "runs/{}/{}_{}_{}_{}.pkl".format(rand_int, args.arch, args.dataset, args.feature_scale, epoch))
 	# I guess the shape is (epoch, 2)
 	log('epoch_loss_array_total is {}'.format(epoch_loss_array_total))
 	# The shape of epoch_loss_array_total is (epoch, 2)
@@ -120,8 +121,11 @@ def train(args):
 	log('the shape of epoch_loss_array_total after removal is {}'.format(epoch_loss_array_total.shape))
 	loss_min_indice = np.argmin(epoch_loss_array_total, axis=0)
 	log('The loss_min_indice is {}'.format(loss_min_indice))
-	torch.save(model, "runs/{}_{}_{}_{}_{}_min.pkl".format(args.arch, args.dataset, args.feature_scale,
-															loss_min_indice[0], rand_int))
+	torch.save(model, "runs/{}/{}_{}_{}_{}_min.pkl".format(rand_int, args.arch, args.dataset, args.feature_scale,
+															loss_min_indice[0]))
+	sys.stdout = orig_stdout
+	f.close()
+
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Hyperparams')
@@ -137,9 +141,15 @@ if __name__ == '__main__':
 						help='# of the epochs')
 	parser.add_argument('--batch_size', nargs='?', type=int, default=1,
 						help='Batch Size')
-	parser.add_argument('--l_rate', nargs='?', type=float, default=1e-5,
+	parser.add_argument('--l_rate', nargs='?', type=float, default=1e-4,
 						help='Learning Rate')
 	parser.add_argument('--feature_scale', nargs='?', type=int, default=1,
 						help='Divider for # of features to use')
 	args = parser.parse_args()
+	rand_int = np.random.randint(10000)
+	print('###### Step Zero: Log Number is ', rand_int)
+	orig_stdout = sys.stdout
+	writer = SummaryWriter('runs/' + str(rand_int))
+	f = open("runs/{}/log.txt".format(rand_int), 'w')
+	sys.stdout = f
 	train(args)

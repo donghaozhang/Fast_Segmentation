@@ -405,23 +405,25 @@ class Brats17Loader(data.Dataset):
 		img_patch = np.asarray(img_patch)
 		flip_int = np.random.randint(0, 4)
 		# print('The number of flip_int is ', flip_int)
-		if flip_int < 2.5:
-			log('t1_patch is {}'.format(img_patch.shape))
-			t1_patch = img_patch[0, :, :, :]
-			t1_patch = (np.flip(t1_patch, axis=flip_int)).copy()
-			t2_patch = img_patch[1, :, :, :]
-			t2_patch = (np.flip(t2_patch, axis=flip_int)).copy()
-			t1ce_patch = img_patch[2, :, :, :]
-			t1ce_patch = (np.flip(t1ce_patch, axis=flip_int)).copy()
-			flair_patch = img_patch[3, :, :, :]
-			flair_patch = (np.flip(flair_patch, axis=flip_int)).copy()
-			img_patch[0, :, :, :] = t1_patch.copy()
-			img_patch[1, :, :, :] = t1ce_patch.copy()
-			img_patch[2, :, :, :] = t2_patch.copy()
-			img_patch[3, :, :, :] = flair_patch.copy()
-			# img_patch = (np.flip(img_patch, axis=flip_int)).copy()
-			# print('The shape of img is {}'.format(img_patch.shape))
-			lbl_patch = (np.flip(lbl_patch, axis=flip_int)).copy()
+		# print('The ')
+		# if flip_int < 2.5:
+		# 	log('t1_patch is {}'.format(img_patch.shape))
+		# 	t1_patch = img_patch[0, :, :, :]
+		# 	t1_patch = (np.flip(t1_patch, axis=flip_int)).copy()
+		# 	t2_patch = img_patch[1, :, :, :]
+		# 	t2_patch = (np.flip(t2_patch, axis=flip_int)).copy()
+		# 	t1ce_patch = img_patch[2, :, :, :]
+		# 	t1ce_patch = (np.flip(t1ce_patch, axis=flip_int)).copy()
+		# 	flair_patch = img_patch[3, :, :, :]
+		# 	flair_patch = (np.flip(flair_patch, axis=flip_int)).copy()
+		# 	img_patch[0, :, :, :] = t1_patch.copy()
+		# 	img_patch[1, :, :, :] = t1ce_patch.copy()
+		# 	img_patch[2, :, :, :] = t2_patch.copy()
+		# 	img_patch[3, :, :, :] = flair_patch.copy()
+		# 	# img_patch = (np.flip(img_patch, axis=flip_int)).copy()
+		# 	# print('The shape of img is {}'.format(img_patch.shape))
+		# 	lbl_patch = (np.flip(lbl_patch, axis=flip_int)).copy()
+		# 	print('The unique values of lbl_patch are {}'.format(np.unique(lbl_patch)))
 			# print('The shape of lbl is {}'.format(lbl_patch.shape))
 
 		# img = np.array(img, dtype=np.uint8)

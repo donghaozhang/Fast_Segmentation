@@ -7,7 +7,7 @@ from ptsemseg.models.pspnet import *
 from ptsemseg.models.linknet import *
 from ptsemseg.models.gcnnet import *
 from ptsemseg.models.bisenet3Dbrain import Bisenet3DBrain
-from ptsemseg.models.unet3d_brain import unet3d
+from ptsemseg.models.unet3d_brain import unet3d_v2, unet3d
 
 # from ptsemseg.models.bisenet3D import *
 
@@ -78,6 +78,6 @@ def _get_model_instance(name):
 		'gcnnet': GCN,
 		'bisenet3Dbrain': Bisenet3DBrain,
 		'unet3d_res': unet3d,
-		'unet3d_cls': unet3d,
+		'unet3d_cls': unet3d_v2,
 		# 'bisenet3D': Bisenet3D,
 	}[name]
