@@ -276,45 +276,47 @@ class Bisenet3DBrain(nn.Module):
 		# The size of pool size
 		self.pool_size = []
 
+		self.filter_base = 32
+
 		# Context Path
-		self.conv1_xception39 = nn.Conv3d(in_channels=4, out_channels=8, kernel_size=3, stride=2, padding=1, bias=False)
+		self.conv1_xception39 = nn.Conv3d(in_channels=4, out_channels=self.filter_base, kernel_size=3, stride=2, padding=1, bias=False)
 		self.maxpool_xception39 = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
 
 		# P3
-		self.block1_xception39 = Block3D(in_filters=8, out_filters=16, reps=1, strides=2, start_with_relu=True, grow_first=True)
-		self.block2_xception39 = Block3D(in_filters=16, out_filters=16, reps=3, strides=1, start_with_relu=True, grow_first=True)
+		self.block1_xception39 = Block3D(in_filters=self.filter_base, out_filters=self.filter_base*2, reps=1, strides=2, start_with_relu=True, grow_first=True)
+		self.block2_xception39 = Block3D(in_filters=self.filter_base*2, out_filters=self.filter_base*2, reps=3, strides=1, start_with_relu=True, grow_first=True)
 
 		# P4
-		self.block3_xception39 = Block3D(in_filters=16, out_filters=32, reps=1, strides=2, start_with_relu=True, grow_first=True)
-		self.block4_xception39 = Block3D(in_filters=32, out_filters=32, reps=7, strides=1, start_with_relu=True, grow_first=True)
+		self.block3_xception39 = Block3D(in_filters=self.filter_base*2, out_filters=self.filter_base*4, reps=1, strides=2, start_with_relu=True, grow_first=True)
+		self.block4_xception39 = Block3D(in_filters=self.filter_base*4, out_filters=self.filter_base*4, reps=7, strides=1, start_with_relu=True, grow_first=True)
 
 		# P5
-		self.block5_xception39 = Block3D(in_filters=32, out_filters=64, reps=1, strides=2, start_with_relu=True, grow_first=True)
-		self.block6_xception39 = Block3D(in_filters=64, out_filters=64, reps=3, strides=1, start_with_relu=True, grow_first=True)
+		self.block5_xception39 = Block3D(in_filters=self.filter_base*4, out_filters=self.filter_base*8, reps=1, strides=2, start_with_relu=True, grow_first=True)
+		self.block6_xception39 = Block3D(in_filters=self.filter_base*8, out_filters=self.filter_base*8, reps=3, strides=1, start_with_relu=True, grow_first=True)
 
-		self.arm1_context_path = AttentionRefinement3DModule(conv_in_channels=32, conv_out_channels=32, pool_size=self.pool_size)
-		self.arm2_context_path = AttentionRefinement3DModule(conv_in_channels=64, conv_out_channels=64, pool_size=self.pool_size)
+		self.arm1_context_path = AttentionRefinement3DModule(conv_in_channels=self.filter_base*4, conv_out_channels=self.filter_base*4, pool_size=self.pool_size)
+		self.arm2_context_path = AttentionRefinement3DModule(conv_in_channels=self.filter_base*8, conv_out_channels=self.filter_base*8, pool_size=self.pool_size)
 		# self.block3_spatial_path = AttentionRefinementModule(conv_in_channels=64, conv_out_channels=64)
 
 		# Spatial Path
-		self.block1_spatial_path = SpatialPath3DModule(conv_in_channels=4, conv_out_channels=64)
-		self.block2_spatial_path = SpatialPath3DModule(conv_in_channels=64, conv_out_channels=64)
-		self.block3_spatial_path = SpatialPath3DModule(conv_in_channels=64, conv_out_channels=64)
+		self.block1_spatial_path = SpatialPath3DModule(conv_in_channels=4, conv_out_channels=self.filter_base*8)
+		self.block2_spatial_path = SpatialPath3DModule(conv_in_channels=self.filter_base*8, conv_out_channels=self.filter_base*8)
+		self.block3_spatial_path = SpatialPath3DModule(conv_in_channels=self.filter_base*8, conv_out_channels=self.filter_base*8)
 
 		# AVG 1 => Up block 1_1
-		self.upblock1_1 = DHUpRes(conv_in_channels=32, conv_out_channels=32)
+		self.upblock1_1 = DHUpRes(conv_in_channels=self.filter_base*4, conv_out_channels=self.filter_base*4)
 
 		# AVG 2 => Up block 2_1
-		self.upblock2_1 = DHUpRes(conv_in_channels=32, conv_out_channels=32)
-		self.upblock2_2 = DHUpRes(conv_in_channels=32, conv_out_channels=32)
-		self.upblock2_3 = DHUpRes(conv_in_channels=32, conv_out_channels=32)
+		self.upblock2_1 = DHUpRes(conv_in_channels=self.filter_base*4, conv_out_channels=self.filter_base*4)
+		self.upblock2_2 = DHUpRes(conv_in_channels=self.filter_base*4, conv_out_channels=self.filter_base*4)
+		self.upblock2_3 = DHUpRes(conv_in_channels=self.filter_base*4, conv_out_channels=self.filter_base*4)
 		#print('This is running')
 		# AVG 3 => Up block 3_1
 		self.upblock3_1 = DHUpRes(conv_in_channels=4, conv_out_channels=4)
 		self.upblock3_2 = DHUpRes(conv_in_channels=4, conv_out_channels=4)
 		self.upblock3_3 = DHUpRes(conv_in_channels=4, conv_out_channels=4)
 		# self.upblock3_1 = unetUp3d_regression_res(conv_in_channels=4, conv_out_channels=4)
-		self.FFM = FeatureFusion3DModule(conv_in_channels=128, conv_out_channels=4, pool_size=self.pool_size)
+		self.FFM = FeatureFusion3DModule(conv_in_channels=self.filter_base*16, conv_out_channels=4, pool_size=self.pool_size)
 	# #------- init weights --------
 	# for m in self.modules():
 	#     if isinstance(m, nn.Conv2d):
@@ -407,11 +409,11 @@ class Bisenet3DBrain(nn.Module):
 # unet 3D brain
 # log(".........")
 # log('The start of 3D bisenet')
-# fake_im_num = 1
-# unet_model_3D = Bisenet3DBrain()
-# unet_model_3D.cuda()
-# numpy_fake_image_3d = np.random.rand(fake_im_num, 4, 64, 64, 64)
-# tensor_fake_image_3d = torch.FloatTensor(numpy_fake_image_3d)
-# torch_fake_image_3d = Variable(tensor_fake_image_3d).cuda()
-# output_3d = unet_model_3D(torch_fake_image_3d)
+fake_im_num = 1
+unet_model_3D = Bisenet3DBrain()
+unet_model_3D.cuda()
+numpy_fake_image_3d = np.random.rand(fake_im_num, 4, 64, 64, 64)
+tensor_fake_image_3d = torch.FloatTensor(numpy_fake_image_3d)
+torch_fake_image_3d = Variable(tensor_fake_image_3d).cuda()
+output_3d = unet_model_3D(torch_fake_image_3d)
 # log(".........")

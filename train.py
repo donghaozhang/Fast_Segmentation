@@ -48,7 +48,8 @@ def train(args):
 	# Setup Model
 	print('###### Step Two: Setup Model')
 	model = get_model(args.arch, n_classes)
-	model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_251_3020_min.pkl')
+	#model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_251_3020_min.pkl')
+	model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2177/bisenet3Dbrain_brats17_loader_1_293_min.pkl')
 	if torch.cuda.is_available():
 		model.cuda(0)
 		test_image, test_segmap = loader[0]
@@ -129,15 +130,15 @@ def train(args):
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Hyperparams')
-	parser.add_argument('--arch', nargs='?', type=str, default='fcn8s',
+	parser.add_argument('--arch', nargs='?', type=str, default='bisenet3Dbrain',
 						help='Architecture to use [\'fcn8s, unet, segnet etc\']')
-	parser.add_argument('--dataset', nargs='?', type=str, default='pascal',
+	parser.add_argument('--dataset', nargs='?', type=str, default='brats17_loader',
 						help='Dataset to use [\'pascal, camvid, ade20k etc\']')
 	parser.add_argument('--img_rows', nargs='?', type=int, default=256,
 						help='Height of the input image')
 	parser.add_argument('--img_cols', nargs='?', type=int, default=256,
 						help='Height of the input image')
-	parser.add_argument('--n_epoch', nargs='?', type=int, default=100,
+	parser.add_argument('--n_epoch', nargs='?', type=int, default=300,
 						help='# of the epochs')
 	parser.add_argument('--batch_size', nargs='?', type=int, default=1,
 						help='Batch Size')
@@ -147,9 +148,10 @@ if __name__ == '__main__':
 						help='Divider for # of features to use')
 	args = parser.parse_args()
 	rand_int = np.random.randint(10000)
-	print('###### Step Zero: Log Number is ', rand_int)
 	orig_stdout = sys.stdout
 	writer = SummaryWriter('runs/' + str(rand_int))
 	f = open("runs/{}/log.txt".format(rand_int), 'w')
 	sys.stdout = f
+	print('###### Step Zero: Log Number is ', rand_int)
+	print('pretrained: /home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2177/bisenet3Dbrain_brats17_loader_1_293_min.pkl')
 	train(args)
