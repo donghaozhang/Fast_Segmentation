@@ -158,7 +158,8 @@ def test_brats17(args):
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2095/bisenet3Dbrain_brats17_loader_1_273_min.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2177/bisenet3Dbrain_brats17_loader_1_293_min.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/3616/bisenet3Dbrain_brats17_loader_1_240_min.pkl'
-	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/1108/bisenet3Dbrain_brats17_loader_1_475_min.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/1108/bisenet3Dbrain_brats17_loader_1_475_min.pkl'
+	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/9863/FCDenseNet57_brats17_loader_1_33.pkl'
 	log('dirname is {}'.format(os.path.dirname(model_path)))
 	model_basename = os.path.basename(model_path)
 	log('The basename is {}'.format(os.path.basename(model_path)))

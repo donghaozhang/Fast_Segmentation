@@ -84,7 +84,7 @@ def train(args):
 			optimizer.zero_grad()
 			# log('The maximum value of input image is {}'.format(images.max()))
 			outputs = model(images)
-			if args.arch == 'bisenet3Dbrain' or args.arch == 'unet3d_cls':
+			if args.arch == 'bisenet3Dbrain' or args.arch == 'unet3d_cls' or args.arch == 'FCDenseNet57':
 				loss = cross_entropy3d(outputs, labels)
 			elif args.arch == 'unet3d_res':
 				labels = labels * 40

@@ -412,27 +412,28 @@ class Brats17Loader(data.Dataset):
 		# while lbl_patch_length == 1:
 
 		# First way to define the range begin
-		# idx_min, idx_max = get_ND_bounding_box(label=lbl, margin=[0, 0, 0, 0])
-		# margin = 10
-		# idx_min[0] = idx_min[0] - margin
-		# idx_min[1] = idx_min[1] - margin
-		# idx_min[2] = idx_min[2] - margin
-		# x_start = randint(idx_min[0], img.shape[1] - patch_size[0])
-		# x_end = x_start + patch_size[0]
-		# y_start = randint(idx_min[1], img.shape[2] - patch_size[1])
-		# y_end = y_start + patch_size[1]
-		# z_start = randint(idx_min[2], img.shape[3] - patch_size[2])
-		# z_end = z_start + patch_size[2]
+		idx_min, idx_max = get_ND_bounding_box(label=lbl, margin=[0, 0, 0, 0])
+		margin = 10
+		idx_min[0] = idx_min[0] - margin
+		idx_min[1] = idx_min[1] - margin
+		idx_min[2] = idx_min[2] - margin
+		x_start = randint(idx_min[0], img.shape[1] - patch_size[0])
+		x_end = x_start + patch_size[0]
+		y_start = randint(idx_min[1], img.shape[2] - patch_size[1])
+		y_end = y_start + patch_size[1]
+		z_start = randint(idx_min[2], img.shape[3] - patch_size[2])
+		z_end = z_start + patch_size[2]
 		# First way to define the range end
 
 		# Second way to define the range begin
-		x_min, x_max, y_min, y_max, z_min, z_max = bbox(lbl)
-		x_start = randint(x_min, x_max)
-		y_start = randint(y_min, y_max)
-		z_start = randint(z_min, z_max)
-		x_end = x_start + patch_size[0]
-		y_end = y_start + patch_size[1]
-		z_end = z_start + patch_size[2]
+		# x_min, x_max, y_min, y_max, z_min, z_max = bbox(lbl, pad=0)
+		# margin = 4
+		# x_start = randint(x_min-margin, x_max+margin)
+		# y_start = randint(y_min, y_max)
+		# z_start = randint(z_min, z_max)
+		# x_end = x_start + patch_size[0]
+		# y_end = y_start + patch_size[1]
+		# z_end = z_start + patch_size[2]
 		# Second way to define the range end
 
 		lbl_patch = lbl[x_start:x_end, y_start:y_end, z_start:z_end]
