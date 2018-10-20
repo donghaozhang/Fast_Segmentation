@@ -312,9 +312,9 @@ class Bisenet3DBrain(nn.Module):
 		self.upblock2_3 = DHUpRes(conv_in_channels=self.filter_base*4, conv_out_channels=self.filter_base*4)
 		#print('This is running')
 		# AVG 3 => Up block 3_1
-		self.upblock3_1 = DHUpRes(conv_in_channels=4, conv_out_channels=4)
-		self.upblock3_2 = DHUpRes(conv_in_channels=4, conv_out_channels=4)
-		self.upblock3_3 = DHUpRes(conv_in_channels=4, conv_out_channels=4)
+		self.upblock3_1 = DHUpRes(conv_in_channels=4, conv_out_channels=self.filter_base)
+		self.upblock3_2 = DHUpRes(conv_in_channels=self.filter_base, conv_out_channels=self.filter_base)
+		self.upblock3_3 = DHUpRes(conv_in_channels=self.filter_base, conv_out_channels=4)
 		# self.upblock3_1 = unetUp3d_regression_res(conv_in_channels=4, conv_out_channels=4)
 		self.FFM = FeatureFusion3DModule(conv_in_channels=self.filter_base*16, conv_out_channels=4, pool_size=self.pool_size)
 	# #------- init weights --------

@@ -1,4 +1,12 @@
+import guotai_brats17.parse_config as parse_config
+
+DEBUG=True
+def log(s):
+	if DEBUG:
+		print(s)
+
 # 1, load configuration parameters
+config_file = ''
 log('Load Configuration Parameters')
 config = parse_config(config_file)
 config_data = config['data']

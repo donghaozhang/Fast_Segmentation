@@ -49,7 +49,7 @@ def train(args):
 	print('###### Step Two: Setup Model')
 	model = get_model(args.arch, n_classes)
 	#model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_251_3020_min.pkl')
-	model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2177/bisenet3Dbrain_brats17_loader_1_293_min.pkl')
+	#model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2177/bisenet3Dbrain_brats17_loader_1_293_min.pkl')
 	if torch.cuda.is_available():
 		model.cuda(0)
 		test_image, test_segmap = loader[0]
@@ -138,7 +138,7 @@ if __name__ == '__main__':
 						help='Height of the input image')
 	parser.add_argument('--img_cols', nargs='?', type=int, default=256,
 						help='Height of the input image')
-	parser.add_argument('--n_epoch', nargs='?', type=int, default=300,
+	parser.add_argument('--n_epoch', nargs='?', type=int, default=600,
 						help='# of the epochs')
 	parser.add_argument('--batch_size', nargs='?', type=int, default=1,
 						help='Batch Size')

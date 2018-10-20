@@ -116,6 +116,10 @@ def convert_label(in_volume, label_convert_source, label_convert_target):
 	out_volume[mask_volume > 0] = convert_volume[mask_volume > 0]
 	return out_volume
 
+def normalize_try(img,mask):
+	mean=np.mean(img[mask!=0])
+	std=np.std(img[mask!=0])
+	return (img-mean)/std
 
 def test_brats17(args):
 	# The path of file containing the names of images required to be tested
@@ -153,7 +157,8 @@ def test_brats17(args):
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/1918/bisenet3Dbrain_brats17_loader_1_2991_min.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2095/bisenet3Dbrain_brats17_loader_1_273_min.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2177/bisenet3Dbrain_brats17_loader_1_293_min.pkl'
-	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/3616/bisenet3Dbrain_brats17_loader_1_197.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/3616/bisenet3Dbrain_brats17_loader_1_240_min.pkl'
+	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/1108/bisenet3Dbrain_brats17_loader_1_475_min.pkl'
 	log('dirname is {}'.format(os.path.dirname(model_path)))
 	model_basename = os.path.basename(model_path)
 	log('The basename is {}'.format(os.path.basename(model_path)))
@@ -206,6 +211,11 @@ def test_brats17(args):
 		lbl = load_nifty_volume_as_array(filename=lbl_path, with_header=False)
 		log(lbl_path)
 		log('The shape of label map img is {}'.format(t2_img.shape))
+
+		t1_img = normalize_try(t1_img, lbl)
+		t1ce_img = normalize_try(t1ce_img, lbl)
+		t2_img = normalize_try(t2_img, lbl)
+		flair_img = normalize_try(flair_img, lbl)
 
 		img = np.stack((t1_img, t2_img, t1ce_img, flair_img))
 		input_im_sz = img.shape

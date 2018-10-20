@@ -304,6 +304,33 @@ class RandomRotate3d(object):
 			rotate(mask, rotate_degree, rotation_plane).copy()
 		)
 
+def normalize_try(img,mask):
+	mean=np.mean(img[mask!=0])
+	std=np.std(img[mask!=0])
+	return (img-mean)/std
+
+
+def bbox(vol, pad=18):
+	vol = np.uint8(vol)
+	tumor = np.where(vol > 0)
+
+	x_min = np.min(tumor[0])
+	y_min = np.min(tumor[1])
+	z_min = np.min(tumor[2])
+
+	x_max = np.max(tumor[0])
+	y_max = np.max(tumor[1])
+	z_max = np.max(tumor[2])
+
+	x_min = max(0, x_min - pad)
+	y_min = max(0, y_min - pad)
+	z_min = max(0, z_min - pad)
+
+	x_max = min(240 - pad, x_max + pad)
+	y_max = min(240 - pad, y_max + pad)
+	z_max = min(155 - pad, z_max + pad)
+
+	return x_min, x_max, y_min, y_max, z_min, z_max
 
 class Brats17Loader(data.Dataset):
 	def __init__(self, root, split="train", is_transform=False, img_size=None):
@@ -365,6 +392,15 @@ class Brats17Loader(data.Dataset):
 		# print('The lbl path is {}'.format(lbl_path))
 		lbl = load_nifty_volume_as_array(filename=lbl_path, with_header=False)
 		lbl = np.array(lbl, dtype=np.int32)
+
+
+		# normalise begin
+		t1_img = normalize_try(t1_img, lbl)
+		t1ce_img = normalize_try(t1ce_img, lbl)
+		t2_img = normalize_try(t2_img, lbl)
+		flair_img = normalize_try(flair_img, lbl)
+		# normalise end
+
 		log(lbl_path)
 		log('The shape of label map img is {}'.format(t2_img.shape))
 		log('The unique values of lbl_patch {}'.format(np.unique(lbl)))
@@ -374,22 +410,31 @@ class Brats17Loader(data.Dataset):
 		log('the patch_size is {} {} {}'.format(patch_size[0], patch_size[1], patch_size[2]))
 		lbl_patch_length = 1
 		# while lbl_patch_length == 1:
-		idx_min, idx_max = get_ND_bounding_box(label=lbl, margin=[0, 0, 0, 0])
-		margin = 10
-		idx_min[0] = idx_min[0] - margin
-		idx_min[1] = idx_min[1] - margin
-		idx_min[2] = idx_min[2] - margin
-		# img = img[:,idx_min[0]:idx_max[0], idx_min[1]:idx_max[1], idx_min[2]:idx_max[2]]
-		# lbl = lbl[idx_min[0]:idx_max[0], idx_min[1]:idx_max[1], idx_min[2]:idx_max[2]]
-		# print('idx_min is {} idx_max is {}'.format(idx_min, idx_max))
-		x_start = randint(idx_min[0], img.shape[1] - patch_size[0])
-		# x_start = randint(8, img.shape[1] - patch_size[0] - 8)
+
+		# First way to define the range begin
+		# idx_min, idx_max = get_ND_bounding_box(label=lbl, margin=[0, 0, 0, 0])
+		# margin = 10
+		# idx_min[0] = idx_min[0] - margin
+		# idx_min[1] = idx_min[1] - margin
+		# idx_min[2] = idx_min[2] - margin
+		# x_start = randint(idx_min[0], img.shape[1] - patch_size[0])
+		# x_end = x_start + patch_size[0]
+		# y_start = randint(idx_min[1], img.shape[2] - patch_size[1])
+		# y_end = y_start + patch_size[1]
+		# z_start = randint(idx_min[2], img.shape[3] - patch_size[2])
+		# z_end = z_start + patch_size[2]
+		# First way to define the range end
+
+		# Second way to define the range begin
+		x_min, x_max, y_min, y_max, z_min, z_max = bbox(lbl)
+		x_start = randint(x_min, x_max)
+		y_start = randint(y_min, y_max)
+		z_start = randint(z_min, z_max)
 		x_end = x_start + patch_size[0]
-		# y_start = randint(0+8, img.shape[2] - patch_size[1]-8)
-		y_start = randint(idx_min[1], img.shape[2] - patch_size[1])
 		y_end = y_start + patch_size[1]
-		z_start = randint(idx_min[2], img.shape[3] - patch_size[2])
 		z_end = z_start + patch_size[2]
+		# Second way to define the range end
+
 		lbl_patch = lbl[x_start:x_end, y_start:y_end, z_start:z_end]
 		log('The unique value of lbl patch is {}'.format(np.unique(lbl_patch)))
 		lbl_patch_length = 1
