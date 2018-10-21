@@ -17,6 +17,9 @@ from ptsemseg.loss import cross_entropy2d, cross_entropy3d, FocalCrossEntropyLos
 from ptsemseg.metrics import scores
 from lr_scheduling import *
 from tensorboardX import SummaryWriter
+from guotai_brats17.parse_config import parse_config
+import random
+from guotai_brats17.data_loader import DataLoader
 
 DEBUG = False
 
@@ -26,9 +29,7 @@ def log(s):
 		print(s)
 
 
-
-
-def train(args):
+def train(args, guotai_loader):
 
 
 	# Setup Dataloader
@@ -40,9 +41,12 @@ def train(args):
 	# loader = data_loader(data_path, is_transform=True, img_size=(args.img_rows, args.img_cols))
 
 	# For 3D dataset keep is_transform False
-	loader = data_loader(data_path, is_transform=False, img_size=(args.img_rows, args.img_cols))
+	# loader = data_loader(data_path, is_transform=False, img_size=(args.img_rows, args.img_cols))
+	if args.dataset == 'brats17_loader':
+		loader = data_loader(guotai_loader)
+	elif
 
-	n_classes = loader.n_classes
+	n_classes = 4
 	trainloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4, shuffle=True)
 
 	# Setup Model
@@ -50,6 +54,7 @@ def train(args):
 	model = get_model(args.arch, n_classes)
 	#model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_251_3020_min.pkl')
 	#model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2177/bisenet3Dbrain_brats17_loader_1_293_min.pkl')
+	#model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/9863/FCDenseNet57_brats17_loader_1_599.pkl')
 	if torch.cuda.is_available():
 		model.cuda(0)
 		test_image, test_segmap = loader[0]
@@ -130,7 +135,7 @@ def train(args):
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Hyperparams')
-	parser.add_argument('--arch', nargs='?', type=str, default='bisenet3Dbrain',
+	parser.add_argument('--arch', nargs='?', type=str, default='FCDenseNet57',
 						help='Architecture to use [\'fcn8s, unet, segnet etc\']')
 	parser.add_argument('--dataset', nargs='?', type=str, default='brats17_loader',
 						help='Dataset to use [\'pascal, camvid, ade20k etc\']')
@@ -146,12 +151,49 @@ if __name__ == '__main__':
 						help='Learning Rate')
 	parser.add_argument('--feature_scale', nargs='?', type=int, default=1,
 						help='Divider for # of features to use')
+	parser.add_argument('--patch_size', nargs='?', type=int, default=[64, 64, 64],
+						help='patch_size for training')
+	parser.add_argument('--pretrained_path', nargs='?', type=str, default='empty',
+						help='path for pretrained model')
+	parser.add_argument('--n_classes', nargs='?', type=int, default=4,
+						help='the number of class for classification')
 	args = parser.parse_args()
 	rand_int = np.random.randint(10000)
+
+	# 1, load configuration parameters
+	config_file_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/FCDenseNet57_train_87_wt_ax.txt'
+	log('Load Configuration Parameters')
+	config = parse_config(config_file_path)
+	config_data = config['data']
+	# print(config_data)
+	config_net = config['network']
+	config_train = config['training']
+	random.seed(config_train.get('random_seed', 1))
+	assert (config_data['with_ground_truth'])
+	net_type = config_net['net_type']
+	net_name = config_net['net_name']
+	class_num = config_net['class_num']
+	batch_size = config_data.get('batch_size', 5)
+
+	# 2, construct graph
+	log('Construct Graph')
+	full_data_shape = [batch_size] + config_data['data_shape']
+	full_label_shape = [batch_size] + config_data['label_shape']
+	log('The full_label_shape is {}'.format(full_label_shape))
+	log('The full_data_shape is {}'.format(full_data_shape))
+	dataloader_guotai = DataLoader(config_data)
+	dataloader_guotai.load_data()
 	orig_stdout = sys.stdout
 	writer = SummaryWriter('runs/' + str(rand_int))
 	f = open("runs/{}/log.txt".format(rand_int), 'w')
 	sys.stdout = f
 	print('###### Step Zero: Log Number is ', rand_int)
-	print('pretrained: /home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2177/bisenet3Dbrain_brats17_loader_1_293_min.pkl')
-	train(args)
+	print('The dataset is {}'.format(args.dataset))
+	print('The nettype is {}'.format(args.arch))
+	print('The patch size is {}'.format(args.patch_size))
+	print('The learning rate is {}'.format(args.l_rate))
+	print('The total training epoch is {}'.format(args.n_epoch))
+	print('The batch_size is {}'.format(args.batch_size))
+	print('The pretrained path is {}'.format(args.pretrained_path))
+	# print('pretrained: /home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2177/bisenet3Dbrain_brats17_loader_1_293_min.pkl')
+	train(args=args, guotai_loader=dataloader_guotai)

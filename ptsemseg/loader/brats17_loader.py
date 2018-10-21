@@ -413,6 +413,7 @@ class Brats17Loader(data.Dataset):
 
 		# First way to define the range begin
 		idx_min, idx_max = get_ND_bounding_box(label=lbl, margin=[0, 0, 0, 0])
+		print(idx_min, idx_max)
 		margin = 10
 		idx_min[0] = idx_min[0] - margin
 		idx_min[1] = idx_min[1] - margin
@@ -593,6 +594,136 @@ class Brats17Loader(data.Dataset):
 		rgb[:, :, 1] = g
 		rgb[:, :, 2] = b
 		return rgb
+
+
+class Brats17Loader_guotai(data.Dataset):
+	def __init__(self, guotai_loader):
+		#self.root = root
+		#self.split = split
+		self.guotai_loader = guotai_loader
+		self.img_size = [256, 256]
+		self.mean = np.array([104.00699, 116.66877, 122.67892])
+		self.n_classes = 2
+		self.files = collections.defaultdict(list)
+		self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_66.txt'
+		# self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/brats17/config17/train_names_all.txt'
+		self.text_file = open(self.train_names_path, "r")
+		self.lines = self.text_file.readlines()
+		log('The length lines is {}'.format(len(self.lines)))
+
+	def __len__(self):
+		return len(self.lines)
+
+	def __getitem__(self, index):
+		# train_names_path =
+		# text_file = open(train_names_path, "r")
+
+		# img_name = self.files[index]
+		# img_num = np.random.randint(0, len(self.lines))
+		# log('The current image number is {}'.format(img_num))
+		# cur_im_name = self.lines[img_num]
+		# cur_im_name = cur_im_name.replace("\n", "")
+		# # print('I am so confused', os.path.basename(cur_im_name))
+		# # print('the name after splitting is ', cur_im_name.split("|\")[0])
+		# img_path = self.root + '/' + cur_im_name + '/' + os.path.basename(cur_im_name)
+		#
+		# # T1 img
+		# t1_img_path = img_path + '_t1.nii.gz'
+		# t1_img = load_nifty_volume_as_array(filename=t1_img_path, with_header=False)
+		# log(t1_img_path)
+		# log('The shape of t1 img is {}'.format(t1_img.shape))
+		#
+		# # T1ce img
+		# t1ce_img_path = img_path + '_t1ce.nii.gz'
+		# t1ce_img = load_nifty_volume_as_array(filename=t1ce_img_path, with_header=False)
+		# log(t1ce_img_path)
+		# log('The shape of t1ce img is {}'.format(t1ce_img.shape))
+		#
+		# # Flair img
+		# flair_img_path = img_path + '_flair.nii.gz'
+		# flair_img = load_nifty_volume_as_array(filename=flair_img_path, with_header=False)
+		# log(flair_img_path)
+		# log('The shape of flair img is {}'.format(flair_img.shape))
+		#
+		# # T2 img
+		# t2_img_path = img_path + '_t2.nii.gz'
+		# t2_img = load_nifty_volume_as_array(filename=flair_img_path, with_header=False)
+		# log(t2_img_path)
+		# log('The shape of t1ce img is {}'.format(t2_img.shape))
+		#
+		# # segmentation label
+		# lbl_path = img_path + '_seg.nii.gz'
+		# # print('The lbl path is {}'.format(lbl_path))
+		# lbl = load_nifty_volume_as_array(filename=lbl_path, with_header=False)
+		# lbl = np.array(lbl, dtype=np.int32)
+		#
+		# # normalise begin
+		# t1_img = normalize_try(t1_img, lbl)
+		# t1ce_img = normalize_try(t1ce_img, lbl)
+		# t2_img = normalize_try(t2_img, lbl)
+		# flair_img = normalize_try(flair_img, lbl)
+		# # normalise end
+		#
+		# log(lbl_path)
+		# log('The shape of label map img is {}'.format(t2_img.shape))
+		# log('The unique values of lbl_patch {}'.format(np.unique(lbl)))
+		# ########### Previous data loading: Begin
+		# img = np.stack((t1_img, t2_img, t1ce_img, flair_img))
+		# patch_size = [64, 64, 64]
+		# log('the patch_size is {} {} {}'.format(patch_size[0], patch_size[1], patch_size[2]))
+		# lbl_patch_length = 1
+		# # while lbl_patch_length == 1:
+		#
+		# # First way to define the range begin
+		# idx_min, idx_max = get_ND_bounding_box(label=lbl, margin=[0, 0, 0, 0])
+		# margin = 10
+		# idx_min[0] = idx_min[0] - margin
+		# idx_min[1] = idx_min[1] - margin
+		# idx_min[2] = idx_min[2] - margin
+		# x_start = randint(idx_min[0], img.shape[1] - patch_size[0])
+		# x_end = x_start + patch_size[0]
+		# y_start = randint(idx_min[1], img.shape[2] - patch_size[1])
+		# y_end = y_start + patch_size[1]
+		# z_start = randint(idx_min[2], img.shape[3] - patch_size[2])
+		# z_end = z_start + patch_size[2]
+		#
+		# lbl_patch = lbl[x_start:x_end, y_start:y_end, z_start:z_end]
+		# log('The unique value of lbl patch is {}'.format(np.unique(lbl_patch)))
+		# lbl_patch_length = 1
+		# log('The length value list is {}'.format(len(np.unique(lbl_patch))))
+		# lbl_patch = np.array(lbl_patch, dtype=np.int32)
+		# lbl_patch = convert_label(lbl_patch, [0, 1, 2, 4], [0, 1, 2, 3])
+		# log('The shape of label is : {}'.format(lbl_patch.shape))
+		#
+		# log('x_start is {} x_end is {}'.format(x_start, x_end))
+		# log('The shape of image after stacking is : {}'.format(img.shape))
+		# img_patch = img[:, x_start:x_end, y_start:y_end, z_start:z_end]
+		# log('The shape of image after stacking is : {}'.format(img.shape))
+		# img_patch = np.asarray(img_patch)
+		# flip_int = np.random.randint(0, 4)
+		#
+		# log('The maximum value of img is {}'.format(np.max(img)))
+		# log('The unique values of label {}'.format(np.unique(lbl)))
+		# log('!!!!!!! I should convert labels of [0 1 2 4] into [0, 1, 2, 3]!!!!!')
+		# lbl_patch = convert_label(in_volume=lbl_patch, label_convert_source=[0, 1, 2, 4],
+		# 						  label_convert_target=[0, 1, 2, 3])
+		# log('The maximum value of img is {}'.format(np.max(img)))
+		# log('The unique values of lbl_patch {}'.format(np.unique(lbl)))
+		# # convert numpy type into torch type
+		train_pair = self.guotai_loader.get_subimage_batch()
+		tempx = train_pair['images']
+		img_patch = np.swapaxes(tempx, 0, 4)
+		img_patch = np.squeeze(img_patch)
+		print('The shape of img_patch', img_patch.shape)
+		tempw = train_pair['weights']
+		lbl_patch = train_pair['labels']
+		lbl_patch = np.squeeze(lbl_patch)
+		img_patch = torch.from_numpy(img_patch).float()
+		lbl_patch = torch.from_numpy(lbl_patch).long()
+
+		########### Previous data loading: End
+
+		return img_patch, lbl_patch
 
 
 if __name__ == '__main__':

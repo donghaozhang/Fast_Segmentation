@@ -6,6 +6,7 @@ from ptsemseg.loader.ade20k_loader import ADE20KLoader
 from ptsemseg.loader.mit_sceneparsing_benchmark_loader import MITSceneParsingBenchmarkLoader
 from ptsemseg.loader.digital_pathology_2018_loader import cellcancerLoader
 from ptsemseg.loader.brats17_loader import Brats17Loader
+from ptsemseg.loader.brats17_loader import Brats17Loader_guotai
 
 def get_loader(name):
     """get_loader
@@ -19,6 +20,7 @@ def get_loader(name):
         'mit_sceneparsing_benchmark': MITSceneParsingBenchmarkLoader,
         'cellcancer': cellcancerLoader,
         'brats17_loader': Brats17Loader,
+        'brats17_loader_guotai': Brats17Loader_guotai,
     }[name]
 
 

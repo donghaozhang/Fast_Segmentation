@@ -5,3 +5,4 @@ runs/*
 ptsemseg/loader/__pycache__/*
 __pycache__/*
 ptsemseg/models/__pycache__/*
+guotai_brats17/__pycache__/*

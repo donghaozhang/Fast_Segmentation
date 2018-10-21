@@ -116,9 +116,10 @@ def convert_label(in_volume, label_convert_source, label_convert_target):
 	out_volume[mask_volume > 0] = convert_volume[mask_volume > 0]
 	return out_volume
 
-def normalize_try(img,mask):
-	mean=np.mean(img[mask!=0])
-	std=np.std(img[mask!=0])
+
+def normalize_try(img, mask):
+	mean=np.mean(img[mask != 0])
+	std=np.std(img[mask != 0])
 	return (img-mean)/std
 
 def test_brats17(args):
@@ -159,22 +160,28 @@ def test_brats17(args):
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2177/bisenet3Dbrain_brats17_loader_1_293_min.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/3616/bisenet3Dbrain_brats17_loader_1_240_min.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/1108/bisenet3Dbrain_brats17_loader_1_475_min.pkl'
-	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/9863/FCDenseNet57_brats17_loader_1_33.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/9863/FCDenseNet57_brats17_loader_1_33.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/9863/FCDenseNet57_brats17_loader_1_599.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/9863/FCDenseNet57_brats17_loader_1_420_min.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/105/FCDenseNet57_brats17_loader_1_599.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/105/FCDenseNet57_brats17_loader_1_323_min.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2779/FCDenseNet57_brats17_loader_1_599.pkl'
+	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/9863/FCDenseNet57_brats17_loader_1_599.pkl'
 	log('dirname is {}'.format(os.path.dirname(model_path)))
 	model_basename = os.path.basename(model_path)
+	print('xxx', os.path.basename(os.path.dirname(model_path)))
 	log('The basename is {}'.format(os.path.basename(model_path)))
 	model_basename_no_ext = os.path.splitext(model_basename)[0]
+	print(model_path.split)
 	log('The model_basename_no_ext is {}'.format(model_basename_no_ext))
-	if not os.path.exists('runs/'+model_basename_no_ext):
-		os.makedirs('runs/'+model_basename_no_ext)
+	log_number = os.path.basename(os.path.dirname(model_path))
+	if not os.path.exists('runs/'+log_number +'/'+model_basename_no_ext):
+		os.makedirs('runs/'+ log_number +'/'+ model_basename_no_ext)
 	text_file = open(test_names_path, "r")
 
 	lines = text_file.readlines()
 	log('The number of images is {}'.format(len(lines)))
-	# for i in range(0, len(lines)):
 	for i in range(0, len(lines)):
-	# for i in range(0, 1):
-		# img_num = np.random.randint(0, len(lines))
 		img_num = i
 		log('The current image number is {}'.format(img_num))
 		cur_im_name = lines[img_num]
@@ -340,7 +347,7 @@ def test_brats17(args):
 		final_label = convert_label(in_volume=final_label, label_convert_source=[0, 1, 2, 3],
 								label_convert_target=[0, 1, 2, 4])
 		# print('The values of this prediction is {}'.format(np.unique(final_label)))
-		save_array_as_nifty_volume(final_label, 'runs/' + model_basename_no_ext + '/' + os.path.basename(cur_im_name) + ".nii.gz")
+		save_array_as_nifty_volume(final_label, 'runs/' + log_number + '/' + model_basename_no_ext + '/' + os.path.basename(cur_im_name) + ".nii.gz")
 
 
 

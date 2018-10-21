@@ -87,18 +87,18 @@ class FCDenseNet(nn.Module):
 		for i in range(len(self.down_blocks)):
 			# print('DB',i)
 			out = self.denseBlocksDown[i](out)
-			print(out.size())
+			# print(out.size())
 			skip_connections.append(out)
-			print('TD', i)
+			# print('TD', i)
 			out = self.transDownBlocks[i](out)
-			print(out.size())
+			# print(out.size())
 
 		# print ('bottleneck')
 		out = self.bottleneck(out)
 		# print (out.size())
 		for i in range(len(self.up_blocks)):
 			skip = skip_connections.pop()
-			print('TU', i)
+			# print('TU', i)
 			out = self.transUpBlocks[i](out, skip)
 			# print (out.size())
 			out = self.denseBlocksUp[i](out)

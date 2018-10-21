@@ -15,7 +15,7 @@ import random
 import nibabel
 import numpy as np
 from scipy import ndimage
-from util.data_process import *
+from guotai_brats17.data_process import *
 
 DEBUG = False
 
@@ -23,6 +23,7 @@ DEBUG = False
 def log(s):
 	if DEBUG:
 		print(s)
+
 
 class DataLoader():
 	def __init__(self, config):
@@ -55,6 +56,8 @@ class DataLoader():
 		"""
 		# use pre-defined patient names
 		if (self.data_names is not None):
+			#print('debug is ', self.data_names)
+			#print(os.getcwd())
 			assert (os.path.isfile(self.data_names))
 			with open(self.data_names) as f:
 				content = f.readlines()
