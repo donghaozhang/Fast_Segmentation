@@ -8,7 +8,7 @@ from ptsemseg.models.linknet import *
 from ptsemseg.models.gcnnet import *
 from ptsemseg.models.bisenet3Dbrain import Bisenet3DBrain
 from ptsemseg.models.unet3d_brain import unet3d_v2, unet3d
-from ptsemseg.models.modelTir3D import FCDenseNet57
+from ptsemseg.models.modelTir3D import FCDenseNet57, FCDenseNet103
 # from ptsemseg.models.bisenet3D import *
 
 
@@ -61,8 +61,9 @@ def get_model(name, n_classes):
 		model = model(feature_scale=4, n_classes=4, is_deconv=True, in_channels=4)
 
 	elif name == 'FCDenseNet57':
-		model = model(4)
-
+		model = model(n_classes=n_classes)
+	elif name == 'FCDenseNet103':
+		model = model(n_classes=n_classes)
 	else:
 		raise 'Model {} not available'.format(name)
 
@@ -83,5 +84,6 @@ def _get_model_instance(name):
 		'unet3d_res': unet3d,
 		'unet3d_cls': unet3d_v2,
 		'FCDenseNet57': FCDenseNet57,
+		'FCDenseNet103': FCDenseNet103,
 		# 'bisenet3D': Bisenet3D,
 	}[name]

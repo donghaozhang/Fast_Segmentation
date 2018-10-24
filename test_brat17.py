@@ -124,7 +124,9 @@ def normalize_try(img, mask):
 
 def test_brats17(args):
 	# The path of file containing the names of images required to be tested
-	test_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/brats17/config17/test_names_36.txt'
+	# test_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/brats17/config17/test_names_36.txt'
+	# test_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/test_names_40_hgg.txt'
+	test_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_87_hgg.txt'
 	# test_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/brats17/config17/train_names_all.txt'
 	# test_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/brats17/config17/train_names_66.txt'
 	# The path of dataset
@@ -166,13 +168,19 @@ def test_brats17(args):
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/105/FCDenseNet57_brats17_loader_1_599.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/105/FCDenseNet57_brats17_loader_1_323_min.pkl'
 	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2779/FCDenseNet57_brats17_loader_1_599.pkl'
-	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/9863/FCDenseNet57_brats17_loader_1_599.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/9863/FCDenseNet57_brats17_loader_1_599.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/9667/FCDenseNet57_brats17_loader_1_599.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/3436/bisenet3Dbrain_brats17_loader_1_1145_min.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/3837/FCDenseNet57_brats17_loader_1_14.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/3683/FCDenseNet57_brats17_loader_1_140.pkl'
+	# model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/3683/FCDenseNet57_brats17_loader_1_420.pkl'
+	model_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/5926/FCDenseNet57_brats17_loader_1_390.pkl'
 	log('dirname is {}'.format(os.path.dirname(model_path)))
 	model_basename = os.path.basename(model_path)
-	print('xxx', os.path.basename(os.path.dirname(model_path)))
+	# print('xxx', os.path.basename(os.path.dirname(model_path)))
 	log('The basename is {}'.format(os.path.basename(model_path)))
 	model_basename_no_ext = os.path.splitext(model_basename)[0]
-	print(model_path.split)
+	# print(model_path.split)
 	log('The model_basename_no_ext is {}'.format(model_basename_no_ext))
 	log_number = os.path.basename(os.path.dirname(model_path))
 	if not os.path.exists('runs/'+log_number +'/'+model_basename_no_ext):
@@ -220,10 +228,10 @@ def test_brats17(args):
 		log(lbl_path)
 		log('The shape of label map img is {}'.format(t2_img.shape))
 
-		t1_img = normalize_try(t1_img, lbl)
-		t1ce_img = normalize_try(t1ce_img, lbl)
-		t2_img = normalize_try(t2_img, lbl)
-		flair_img = normalize_try(flair_img, lbl)
+		# t1_img = normalize_try(t1_img, lbl)
+		# t1ce_img = normalize_try(t1ce_img, lbl)
+		# t2_img = normalize_try(t2_img, lbl)
+		# flair_img = normalize_try(flair_img, lbl)
 
 		img = np.stack((t1_img, t2_img, t1ce_img, flair_img))
 		input_im_sz = img.shape
@@ -346,6 +354,8 @@ def test_brats17(args):
 		# log('The minimum value of final label is {}'.format(final_label.min()))
 		final_label = convert_label(in_volume=final_label, label_convert_source=[0, 1, 2, 3],
 								label_convert_target=[0, 1, 2, 4])
+		bi_t1_img = t1_img > 0
+		final_label = final_label * bi_t1_img
 		# print('The values of this prediction is {}'.format(np.unique(final_label)))
 		save_array_as_nifty_volume(final_label, 'runs/' + log_number + '/' + model_basename_no_ext + '/' + os.path.basename(cur_im_name) + ".nii.gz")
 

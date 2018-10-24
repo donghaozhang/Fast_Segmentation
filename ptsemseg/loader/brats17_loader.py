@@ -334,6 +334,7 @@ def bbox(vol, pad=18):
 
 class Brats17Loader(data.Dataset):
 	def __init__(self, root, split="train", is_transform=False, img_size=None):
+		print('previous dataloeder is being called')
 		self.root = root
 		self.split = split
 		self.img_size = [256, 256]
@@ -341,7 +342,8 @@ class Brats17Loader(data.Dataset):
 		self.mean = np.array([104.00699, 116.66877, 122.67892])
 		self.n_classes = 2
 		self.files = collections.defaultdict(list)
-		self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_66.txt'
+		# self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_66.txt'
+		self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/train_names_87_hgg.txt'
 		# self.train_names_path = '/home/donghao/Desktop/donghao/isbi2019/code/brats17/config17/train_names_all.txt'
 		self.text_file = open(self.train_names_path, "r")
 		self.lines = self.text_file.readlines()
@@ -395,10 +397,10 @@ class Brats17Loader(data.Dataset):
 
 
 		# normalise begin
-		t1_img = normalize_try(t1_img, lbl)
-		t1ce_img = normalize_try(t1ce_img, lbl)
-		t2_img = normalize_try(t2_img, lbl)
-		flair_img = normalize_try(flair_img, lbl)
+		# t1_img = normalize_try(t1_img, lbl)
+		# t1ce_img = normalize_try(t1ce_img, lbl)
+		# t2_img = normalize_try(t2_img, lbl)
+		# flair_img = normalize_try(flair_img, lbl)
 		# normalise end
 
 		log(lbl_path)
@@ -413,28 +415,28 @@ class Brats17Loader(data.Dataset):
 
 		# First way to define the range begin
 		idx_min, idx_max = get_ND_bounding_box(label=lbl, margin=[0, 0, 0, 0])
-		print(idx_min, idx_max)
-		margin = 10
-		idx_min[0] = idx_min[0] - margin
-		idx_min[1] = idx_min[1] - margin
-		idx_min[2] = idx_min[2] - margin
-		x_start = randint(idx_min[0], img.shape[1] - patch_size[0])
-		x_end = x_start + patch_size[0]
-		y_start = randint(idx_min[1], img.shape[2] - patch_size[1])
-		y_end = y_start + patch_size[1]
-		z_start = randint(idx_min[2], img.shape[3] - patch_size[2])
-		z_end = z_start + patch_size[2]
+		# print(idx_min, idx_max)
+		# margin = 20
+		# idx_min[0] = idx_min[0] - margin
+		# idx_min[1] = idx_min[1] - margin
+		# idx_min[2] = idx_min[2] - margin
+		# x_start = randint(idx_min[0], img.shape[1] - patch_size[0])
+		# x_end = x_start + patch_size[0]
+		# y_start = randint(idx_min[1], img.shape[2] - patch_size[1])
+		# y_end = y_start + patch_size[1]
+		# z_start = randint(idx_min[2], img.shape[3] - patch_size[2])
+		# z_end = z_start + patch_size[2]
 		# First way to define the range end
 
 		# Second way to define the range begin
 		# x_min, x_max, y_min, y_max, z_min, z_max = bbox(lbl, pad=0)
 		# margin = 4
-		# x_start = randint(x_min-margin, x_max+margin)
-		# y_start = randint(y_min, y_max)
-		# z_start = randint(z_min, z_max)
-		# x_end = x_start + patch_size[0]
-		# y_end = y_start + patch_size[1]
-		# z_end = z_start + patch_size[2]
+		x_start = randint(0, img.shape[1] - patch_size[0])
+		y_start = randint(0, img.shape[2] - patch_size[1])
+		z_start = randint(0, img.shape[3] - patch_size[2])
+		x_end = x_start + patch_size[0]
+		y_end = y_start + patch_size[1]
+		z_end = z_start + patch_size[2]
 		# Second way to define the range end
 
 		lbl_patch = lbl[x_start:x_end, y_start:y_end, z_start:z_end]
@@ -442,7 +444,13 @@ class Brats17Loader(data.Dataset):
 		lbl_patch_length = 1
 		log('The length value list is {}'.format(len(np.unique(lbl_patch))))
 		lbl_patch = np.array(lbl_patch, dtype=np.int32)
+		# binary segmentation
 		lbl_patch = convert_label(lbl_patch, [0, 1, 2, 4], [0, 1, 2, 3])
+		# lbl_patch = convert_label(lbl_patch, [0, 1, 2, 4], [0, 1, 2, 3])
+		save_array_as_nifty_volume(lbl_patch, "runs/testlabel.nii.gz")
+		# multi-class segmentation
+		# lbl_patch = convert_label(lbl_patch, [0, 1, 2, 4], [0, 1, 1, 1])
+		# although I am confused, it is still binary segmentation
 		log('The shape of label is : {}'.format(lbl_patch.shape))
 
 		log('x_start is {} x_end is {}'.format(x_start, x_end))
@@ -481,8 +489,8 @@ class Brats17Loader(data.Dataset):
 		log('The maximum value of img is {}'.format(np.max(img)))
 		log('The unique values of label {}'.format(np.unique(lbl)))
 		log('!!!!!!! I should convert labels of [0 1 2 4] into [0, 1, 2, 3]!!!!!')
-		lbl_patch = convert_label(in_volume=lbl_patch, label_convert_source=[0, 1, 2, 4],
-								  label_convert_target=[0, 1, 2, 3])
+		# lbl_patch = convert_label(in_volume=lbl_patch, label_convert_source=[0, 1, 2, 4],
+		# 						  label_convert_target=[0, 1, 1, 1])
 		# transform is disabled for now
 		if self.is_transform:
 			img, lbl = self.transform(img, lbl)
@@ -492,6 +500,8 @@ class Brats17Loader(data.Dataset):
 		img_patch = torch.from_numpy(img_patch).float()
 		lbl_patch = torch.from_numpy(lbl_patch).long()
 
+		# print('img_patch ', img_patch)
+		# print('lbl_patch ', lbl_patch)
 		########### Previous data loading: End
 
 		########### Brats17 official data loading: Begin

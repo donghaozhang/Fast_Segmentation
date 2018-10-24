@@ -29,7 +29,7 @@ def log(s):
 		print(s)
 
 
-def train(args, guotai_loader):
+def train(args, guotai_config):
 
 
 	# Setup Dataloader
@@ -42,19 +42,37 @@ def train(args, guotai_loader):
 
 	# For 3D dataset keep is_transform False
 	# loader = data_loader(data_path, is_transform=False, img_size=(args.img_rows, args.img_cols))
-	if args.dataset == 'brats17_loader':
-		loader = data_loader(guotai_loader)
-	elif
+	if args.dataset == 'brats17_loader_guotai':
+		config_data = config['data']
+		# print(config_data)
+		# config_net = config['network']
+		config_train = config['training']
+		random.seed(config_train.get('random_seed', 1))
+		assert (config_data['with_ground_truth'])
+		# net_type = config_net['net_type']
+		# net_name = config_net['net_name']
+		# class_num = config_net['class_num']
+		# batch_size = config_data.get('batch_size', 5)
+		dataloader_guotai = DataLoader(config_data)
+		dataloader_guotai.load_data()
+		loader = data_loader(dataloader_guotai)
+	elif args.dataset == 'brats17_loader':
+		loader = data_loader(data_path, is_transform=False, img_size=(args.img_rows, args.img_cols))
+	else:
+		loader = data_loader(data_path, is_transform=True, img_size=(args.img_rows, args.img_cols))
 
-	n_classes = 4
+	n_classes = args.n_classes
 	trainloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4, shuffle=True)
 
 	# Setup Model
 	print('###### Step Two: Setup Model')
 	model = get_model(args.arch, n_classes)
+	if args.pretrained_path != 'empty':
+		model = torch.load(args.pretrained_path)
 	#model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/bisenet3Dbrain_brats17_loader_1_251_3020_min.pkl')
 	#model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2177/bisenet3Dbrain_brats17_loader_1_293_min.pkl')
 	#model = torch.load('/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/9863/FCDenseNet57_brats17_loader_1_599.pkl')
+	# model =
 	if torch.cuda.is_available():
 		model.cuda(0)
 		test_image, test_segmap = loader[0]
@@ -88,8 +106,10 @@ def train(args, guotai_loader):
 
 			optimizer.zero_grad()
 			# log('The maximum value of input image is {}'.format(images.max()))
+			# print(images)
 			outputs = model(images)
-			if args.arch == 'bisenet3Dbrain' or args.arch == 'unet3d_cls' or args.arch == 'FCDenseNet57':
+			# print(outputs)
+			if args.arch == 'bisenet3Dbrain' or args.arch == 'unet3d_cls' or args.arch == 'FCDenseNet57' or args.arch == 'FCDenseNet103':
 				loss = cross_entropy3d(outputs, labels)
 			elif args.arch == 'unet3d_res':
 				labels = labels * 40
@@ -117,7 +137,7 @@ def train(args, guotai_loader):
 		log('The variable avg_loss_array is {}'.format(avg_loss_array))
 		writer.add_scalar('train_main_loss', avg_loss_array[0][0], epoch)
 
-		if epoch % 1 == 0:
+		if epoch % 10 == 0:
 			torch.save(model, "runs/{}/{}_{}_{}_{}.pkl".format(rand_int, args.arch, args.dataset, args.feature_scale, epoch))
 	# I guess the shape is (epoch, 2)
 	log('epoch_loss_array_total is {}'.format(epoch_loss_array_total))
@@ -135,7 +155,7 @@ def train(args, guotai_loader):
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Hyperparams')
-	parser.add_argument('--arch', nargs='?', type=str, default='FCDenseNet57',
+	parser.add_argument('--arch', nargs='?', type=str, default='FCDenseNet103',
 						help='Architecture to use [\'fcn8s, unet, segnet etc\']')
 	parser.add_argument('--dataset', nargs='?', type=str, default='brats17_loader',
 						help='Dataset to use [\'pascal, camvid, ade20k etc\']')
@@ -143,7 +163,7 @@ if __name__ == '__main__':
 						help='Height of the input image')
 	parser.add_argument('--img_cols', nargs='?', type=int, default=256,
 						help='Height of the input image')
-	parser.add_argument('--n_epoch', nargs='?', type=int, default=600,
+	parser.add_argument('--n_epoch', nargs='?', type=int, default=2000,
 						help='# of the epochs')
 	parser.add_argument('--batch_size', nargs='?', type=int, default=1,
 						help='Batch Size')
@@ -164,25 +184,7 @@ if __name__ == '__main__':
 	config_file_path = '/home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/FCDenseNet57_train_87_wt_ax.txt'
 	log('Load Configuration Parameters')
 	config = parse_config(config_file_path)
-	config_data = config['data']
-	# print(config_data)
-	config_net = config['network']
-	config_train = config['training']
-	random.seed(config_train.get('random_seed', 1))
-	assert (config_data['with_ground_truth'])
-	net_type = config_net['net_type']
-	net_name = config_net['net_name']
-	class_num = config_net['class_num']
-	batch_size = config_data.get('batch_size', 5)
 
-	# 2, construct graph
-	log('Construct Graph')
-	full_data_shape = [batch_size] + config_data['data_shape']
-	full_label_shape = [batch_size] + config_data['label_shape']
-	log('The full_label_shape is {}'.format(full_label_shape))
-	log('The full_data_shape is {}'.format(full_data_shape))
-	dataloader_guotai = DataLoader(config_data)
-	dataloader_guotai.load_data()
 	orig_stdout = sys.stdout
 	writer = SummaryWriter('runs/' + str(rand_int))
 	f = open("runs/{}/log.txt".format(rand_int), 'w')
@@ -196,4 +198,4 @@ if __name__ == '__main__':
 	print('The batch_size is {}'.format(args.batch_size))
 	print('The pretrained path is {}'.format(args.pretrained_path))
 	# print('pretrained: /home/donghao/Desktop/donghao/isbi2019/code/fast_segmentation_code/runs/2177/bisenet3Dbrain_brats17_loader_1_293_min.pkl')
-	train(args=args, guotai_loader=dataloader_guotai)
+	train(args=args, guotai_config=config)
